@@ -1256,6 +1256,7 @@
 /* ════════ SHIPMENTS LIST ════════ */
 const _STATUS_CSS   = ['warehouse-cn','enroute','arrived','customs','warehouse-gh','ofd','delivered'];
 const _STATUS_LABEL = ['In Warehouse (China)','En Route','Arrived in Ghana','Cleared Customs','At Warehouse (Ghana)','Out for Delivery','Delivered'];
+const _API_STATUS   = ['IN_WAREHOUSE_CHINA','EN_ROUTE','ARRIVED_GHANA','CLEARED_CUSTOMS','AT_WAREHOUSE_GHANA','OUT_FOR_DELIVERY','DELIVERED'];
 
 function _fmtDate(iso) {
   return new Date(iso).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
@@ -1305,11 +1306,66 @@ async function loadShipments() {
         <td><span class="status-badge ${statusCss}"><span class="status-dot"></span>${statusLabel}</span></td>
         <td><b>${s.customerCount}</b></td>
         <td><span class="date-text">${_fmtDate(s.date)}</span></td>
-        <td><div class="actions"><button class="action-btn primary" onclick="navigate('detail')">View</button></div></td>
+        <td><div class="actions"><button class="action-btn primary" onclick="openDetail('${s.id}')">View</button></div></td>
       </tr>`;
     }).join('');
   } catch (_) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#D32F2F;padding:24px;">Failed to load shipments. Is the server running?</td></tr>';
+  }
+}
+
+/* ════════ SHIPMENT DETAIL LOADER ════════ */
+let _currentShipmentId = 'SW0404S';
+
+function openDetail(id) {
+  _currentShipmentId = id;
+  navigate('detail');
+}
+
+async function loadShipmentDetail(id) {
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
+  try {
+    const res = await fetch('http://localhost:3001/api/shipments/' + id, {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('swift_token');
+      localStorage.removeItem('swift_user');
+      navigate('login');
+      return;
+    }
+
+    const s = await res.json();
+
+    Object.assign(currentShipment, {
+      id:          s.id,
+      type:        s.type.toLowerCase(),
+      date:        _fmtDate(s.date),
+      notes:       s.notes || '',
+      enRouteDate: s.enRouteDate ? new Date(s.enRouteDate) : null,
+    });
+
+    currentStageIndex = s.statusIndex >= 0 ? s.statusIndex : 0;
+
+    customers = s.customers.map(c => ({
+      id:        c.id,
+      name:      c.name,
+      phone:     c.phone,
+      delivered: c.delivered,
+      itemList:  c.items.map(it => ({ desc: it.description, cat: it.category, otn: it.otn || '' })),
+    }));
+
+    renderDetailHeader();
+    renderProgress();
+    updateHeaderBadge();
+    updateDropdownHighlight();
+    renderCustomerTable();
+    renderEta();
+  } catch (_) {
+    console.error('Failed to load shipment detail');
   }
 }
 
@@ -1318,6 +1374,7 @@ function navigate(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   if (page === 'shipments') loadShipments();
+  if (page === 'detail')    loadShipmentDetail(_currentShipmentId);
   if (page === 'create') {
     _selectedShipType = 'sea';
     document.getElementById('cs-opt-sea').classList.add('selected');
@@ -1689,11 +1746,28 @@ function closeStatusModal() {
   _pendingStatusIdx = -1;
   document.getElementById('status-confirm-modal').classList.remove('open');
 }
-function confirmStatusUpdate() {
+async function confirmStatusUpdate() {
   if (_pendingStatusIdx < 0) return;
-  applyStatus(_pendingStatusIdx);
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
+  const idx = _pendingStatusIdx;
   closeStatusModal();
-  showToast('Status updated to "' + getStatusLabels()[currentStageIndex] + '"');
+
+  try {
+    const res = await fetch('http://localhost:3001/api/shipments/' + currentShipment.id + '/status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ status: _API_STATUS[idx] }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Failed to update status'); return; }
+    if (data.enRouteDate) currentShipment.enRouteDate = new Date(data.enRouteDate);
+    applyStatus(data.statusIndex);
+    showToast('Status updated to "' + getStatusLabels()[data.statusIndex] + '"');
+  } catch (_) {
+    showToast('Failed to update status. Is the server running?');
+  }
 }
 document.getElementById('status-confirm-modal').addEventListener('click', function(e) {
   if (e.target === this) closeStatusModal();
@@ -1860,12 +1934,29 @@ function renderCustomerDetail() {
   ).join('');
 }
 
-function markCurrentCustomerDelivered() {
-  customers[_selectedCustomer].delivered = true;
-  renderCustomerDetail();
-  renderCustomerTable();
-  checkAllDelivered();
-  showToast(customers[_selectedCustomer].name + ' marked as delivered');
+async function markCurrentCustomerDelivered() {
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
+  const c = customers[_selectedCustomer];
+  try {
+    const res = await fetch('http://localhost:3001/api/customers/' + c.id + '/deliver', {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showToast(data.error || 'Failed to mark as delivered');
+      return;
+    }
+    c.delivered = true;
+    renderCustomerDetail();
+    renderCustomerTable();
+    checkAllDelivered();
+    showToast(c.name + ' marked as delivered');
+  } catch (_) {
+    showToast('Failed to mark as delivered. Is the server running?');
+  }
 }
 
 /* ════════ NOTIFICATION TEMPLATES ════════ */
