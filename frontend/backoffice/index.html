@@ -797,7 +797,7 @@
             <div class="type-option"          id="cs-opt-air" onclick="selectType('air')"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div class="type-option-icon">✈️</div><div class="type-option-radio" id="cs-radio-air"></div></div><div class="type-option-name">Air Freight</div><div class="type-option-desc">Faster air shipping from China</div></div>
           </div>
         </div>
-        <div class="form-group"><div class="form-label">Notes <span style="color:#B0C0D0;text-transform:none;font-weight:400;">(optional)</span></div><textarea class="form-input" placeholder="Any internal notes about this shipment…"></textarea></div>
+        <div class="form-group"><div class="form-label">Notes <span style="color:#B0C0D0;text-transform:none;font-weight:400;">(optional)</span></div><textarea class="form-input" id="cs-notes" rows="3" placeholder="e.g. Handle with care — fragile items"></textarea><div class="form-hint">Internal notes visible to staff only</div></div>
         <div class="form-footer"><div style="font-size:12px;color:#B0C0D0;">Step 1 of 2</div><button class="btn-primary" onclick="goToCreateStep(2)">Next — Upload Customers<svg viewBox="0 0 24 24" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button></div>
       </div>
       <div class="form-card" id="cs-step2" style="display:none;">
@@ -1396,6 +1396,8 @@ function navigate(page) {
     _selectedShipType = 'sea';
     document.getElementById('cs-opt-sea').classList.add('selected');
     document.getElementById('cs-opt-air').classList.remove('selected');
+    const notesEl = document.getElementById('cs-notes');
+    if (notesEl) notesEl.value = '';
     updateShipmentId();
     goToCreateStep(1);
   }
@@ -1580,35 +1582,58 @@ function setConfirmBtn(enabled) {
   btn.onclick = enabled ? createShipment : null;
 }
 
-function createShipment() {
+async function createShipment() {
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
   const type    = _selectedShipType;
   const dateVal = document.getElementById('cs-date-input')?.value || '';
-  const id      = document.getElementById('cs-shipment-id-field')?.value || 'SW' + type.toUpperCase();
-  const typeLabel = type === 'sea' ? '🚢 Sea' : '✈️ Air';
-  const typeClass = type;
-  const d = dateVal ? new Date(dateVal) : new Date();
-  const dateStr = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
-  const tbody = document.getElementById('shipments-tbody');
-  if (tbody) {
-    const tr = document.createElement('tr');
-    tr.dataset.type = type;
-    tr.dataset.id   = id;
-    tr.innerHTML = `<td><span class="shipment-id">${id}</span></td>` +
-      `<td><span class="type-badge ${typeClass}">${typeLabel}</span></td>` +
-      `<td><span class="status-badge warehouse-cn"><span class="status-dot"></span>In Warehouse (China)</span></td>` +
-      `<td><b>0</b></td>` +
-      `<td><span class="date-text">${dateStr}</span></td>` +
-      `<td><div class="actions"><button class="action-btn primary" onclick="navigate('detail')">View</button></div></td>`;
-    tbody.insertBefore(tr, tbody.firstChild);
+  const id      = document.getElementById('cs-shipment-id-field')?.value || ('SW' + type.toUpperCase());
+  const notes   = document.getElementById('cs-notes')?.value.trim() || '';
+
+  setConfirmBtn(false);
+
+  try {
+    const res = await fetch('http://localhost:3001/api/shipments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ id, type: type.toUpperCase(), date: dateVal, notes: notes || undefined }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Failed to create shipment');
+      setConfirmBtn(true);
+      return;
+    }
+
+    /* Inject new row into the table */
+    const typeLabel = type === 'sea' ? '🚢 Sea' : '✈️ Air';
+    const dateStr   = _fmtDate(data.date);
+    const tbody     = document.getElementById('shipments-tbody');
+    if (tbody) {
+      const tr = document.createElement('tr');
+      tr.dataset.type = type;
+      tr.dataset.id   = data.id;
+      tr.innerHTML =
+        `<td><span class="shipment-id">${data.id}</span></td>` +
+        `<td><span class="type-badge ${type}">${typeLabel}</span></td>` +
+        `<td><span class="status-badge warehouse-cn"><span class="status-dot"></span>In Warehouse (China)</span></td>` +
+        `<td><b>0</b></td>` +
+        `<td><span class="date-text">${dateStr}</span></td>` +
+        `<td><div class="actions"><button class="action-btn primary" onclick="openDetail('${data.id}')">View</button></div></td>`;
+      tbody.insertBefore(tr, tbody.firstChild);
+    }
+    const pi = document.getElementById('shipments-page-info');
+    if (pi) {
+      const total = document.querySelectorAll('#shipments-tbody tr').length;
+      pi.textContent = 'Showing 1–' + total + ' of ' + total + ' shipments';
+    }
+    navigate('shipments');
+    showToast('Shipment ' + data.id + ' created successfully');
+  } catch (_) {
+    showToast('Failed to create shipment. Is the server running?');
+    setConfirmBtn(true);
   }
-  /* Update shipments page-info count */
-  const pi = document.getElementById('shipments-page-info');
-  if (pi) {
-    const total = document.querySelectorAll('#shipments-tbody tr').length;
-    pi.textContent = 'Showing 1–' + total + ' of ' + total + ' shipments';
-  }
-  navigate('shipments');
-  showToast('Shipment ' + id + ' created successfully');
 }
 
 /* ════════ SHIPMENT DETAIL DATA ════════ */
@@ -2282,21 +2307,38 @@ function openEditShipmentModal() {
 function closeEditShipmentModal() {
   document.getElementById('edit-shipment-modal').classList.remove('open');
 }
-function saveEditShipment() {
+async function saveEditShipment() {
   const type  = document.getElementById('es-type').value;
   const dateV = document.getElementById('es-date').value;
   const notes = document.getElementById('es-notes').value.trim();
   if (!dateV) { showToast('Please select a date'); return; }
+
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
   currentShipment.type  = type;
   currentShipment.notes = notes;
-  const d = new Date(dateV);
-  currentShipment.date  = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  currentShipment.date  = new Date(dateV).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
   closeEditShipmentModal();
   renderDetailHeader();
   renderProgress();
   updateHeaderBadge();
   renderEta();
   showToast('Shipment ' + currentShipment.id + ' updated');
+
+  try {
+    const res = await fetch('http://localhost:3001/api/shipments/' + currentShipment.id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ type, date: dateV, notes: notes || undefined }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showToast(data.error || 'Failed to save shipment changes to server');
+    }
+  } catch (_) {
+    showToast('Could not sync shipment changes with server');
+  }
 }
 document.getElementById('edit-shipment-modal').addEventListener('click', function(e) { if (e.target === this) closeEditShipmentModal(); });
 
