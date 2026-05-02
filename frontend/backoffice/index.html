@@ -1388,6 +1388,7 @@ function navigate(page) {
   if (page === 'shipments') loadShipments();
   if (page === 'detail')    loadShipmentDetail(_currentShipmentId);
   if (page === 'users')     loadUsers();
+  if (page === 'notif')     loadTemplates();
   if (page === 'create') {
     _selectedShipType = 'sea';
     document.getElementById('cs-opt-sea').classList.add('selected');
@@ -2114,10 +2115,68 @@ function switchNotifTab(tab) {
   document.getElementById('notif-sea').style.display = tab==='sea' ? 'flex' : 'none';
   document.getElementById('notif-air').style.display = tab==='air' ? 'flex' : 'none';
 }
-function saveTemplates() {
-  const s = document.getElementById('save-success');
-  s.style.display = 'block';
-  setTimeout(() => s.style.display = 'none', 3000);
+async function loadTemplates() {
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
+  try {
+    const res = await fetch('http://localhost:3001/api/notifications/templates', {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('swift_token'); localStorage.removeItem('swift_user');
+      navigate('login'); return;
+    }
+    const templates = await res.json();
+    if (templates.length > 0) {
+      templates.forEach(tpl => {
+        const type = tpl.type.toLowerCase();
+        if (tplVals[type] && tpl.stage >= 0 && tpl.stage <= 6) {
+          tplVals[type][tpl.stage] = tpl.message;
+        }
+      });
+    }
+  } catch (_) { /* fall through — render with current defaults */ }
+
+  renderTemplates('sea');
+  renderTemplates('air');
+}
+
+async function saveTemplates() {
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
+  /* Sync tplVals from textareas (belt-and-suspenders alongside oninput) */
+  ['sea', 'air'].forEach(type => {
+    for (let i = 0; i < 7; i++) {
+      const ta = document.getElementById('tpl-' + type + '-' + i);
+      if (ta) tplVals[type][i] = ta.value;
+    }
+  });
+
+  try {
+    const [resS, resA] = await Promise.all([
+      fetch('http://localhost:3001/api/notifications/templates', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ type: 'SEA', templates: tplVals.sea.map((message, stage) => ({ stage, message })) }),
+      }),
+      fetch('http://localhost:3001/api/notifications/templates', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ type: 'AIR', templates: tplVals.air.map((message, stage) => ({ stage, message })) }),
+      }),
+    ]);
+
+    if (!resS.ok) { const d = await resS.json().catch(() => ({})); showToast(d.error || 'Failed to save SEA templates'); return; }
+    if (!resA.ok) { const d = await resA.json().catch(() => ({})); showToast(d.error || 'Failed to save AIR templates'); return; }
+
+    const s = document.getElementById('save-success');
+    s.style.display = 'block';
+    setTimeout(() => s.style.display = 'none', 3000);
+  } catch (_) {
+    showToast('Failed to save templates. Is the server running?');
+  }
 }
 
 /* ════════ USER MANAGEMENT ════════ */
