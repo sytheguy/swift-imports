@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ShipmentType {
+  SEA
+  AIR
+}
+
+enum ShipmentStatus {
+  IN_WAREHOUSE_CHINA
+  EN_ROUTE
+  ARRIVED_GHANA
+  CLEARED_CUSTOMS
+  AT_WAREHOUSE_GHANA
+  OUT_FOR_DELIVERY
+  DELIVERED
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+enum NotifChannel {
+  SMS
+  WHATSAPP
+}
+
+enum NotifStatus {
+  SENT
+  FAILED
+  PENDING
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String?    @unique
+  phone        String?    @unique
+  role         UserRole   @default(STAFF)
+  status       UserStatus @default(PENDING)
+  passwordHash String?
+  inviteToken  String?    @unique
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("users")
+}
+
+model Shipment {
+  id          String         @id
+  type        ShipmentType
+  status      ShipmentStatus @default(IN_WAREHOUSE_CHINA)
+  date        DateTime
+  notes       String?
+  enRouteDate DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  customers   Customer[]
+
+  @@map("shipments")
+}
+
+model Customer {
+  id         String   @id
+  name       String
+  phone      String
+  delivered  Boolean  @default(false)
+  shipmentId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  shipment   Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  items      Item[]
+  notifLogs  NotificationLog[]
+
+  @@map("customers")
+}
+
+model Item {
+  id          String   @id @default(cuid())
+  description String
+  category    String
+  otn         String?
+  customerId  String
+  createdAt   DateTime @default(now())
+
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("items")
+}
+
+model NotificationTemplate {
+  id        String       @id @default(cuid())
+  type      ShipmentType
+  stage     Int
+  message   String       @db.Text
+  updatedAt DateTime     @updatedAt
+
+  @@unique([type, stage])
+  @@map("notification_templates")
+}
+
+model NotificationLog {
+  id         String       @id @default(cuid())
+  customerId String
+  stage      Int
+  channel    NotifChannel
+  status     NotifStatus  @default(PENDING)
+  error      String?
+  sentAt     DateTime     @default(now())
+
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("notification_logs")
+}

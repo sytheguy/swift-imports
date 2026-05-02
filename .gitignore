@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.local
+.env.production
+backend/node_modules/
+backend/prisma/migrations/
+dist/
+.next/
+.vercel/
+.DS_Store
+*.log
+npm-debug.log*
+.vscode/
+.idea/

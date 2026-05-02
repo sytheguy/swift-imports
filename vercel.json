@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "buildCommand": "cd backend && npm install && npx prisma generate",
+  "functions": {
+    "backend/src/index.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/backend/src/index.js" },
+    { "source": "/portal", "destination": "/frontend/portal/index.html" },
+    { "source": "/portal/(.*)", "destination": "/frontend/portal/index.html" },
+    { "source": "/(.*)", "destination": "/frontend/backoffice/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    }
+  ]
+}
