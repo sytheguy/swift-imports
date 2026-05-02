@@ -9,6 +9,7 @@ import customersRoutes from './routes/customers.js';
 import usersRoutes from './routes/users.js';
 import notifRoutes from './routes/notifications.js';
 import portalRoutes from './routes/portal.js';
+import settingsRoutes from './routes/settings.js';
 
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -48,6 +49,7 @@ app.use('/api/customers', customersRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/notifications', notifRoutes);
 app.use('/api/portal', portalRoutes);
+app.use('/api/settings', settingsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });

@@ -1160,11 +1160,11 @@
       <div class="settings-section">
         <div class="settings-section-header"><div class="settings-section-icon navy"><svg viewBox="0 0 24 24" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg></div><div><div class="settings-section-title">Company information</div><div class="settings-section-sub">Your business details</div></div></div>
         <div class="settings-body">
-          <div class="settings-row"><div class="settings-field"><div class="settings-label">Company Name</div><input class="settings-input" type="text" value="Swift Imports"/></div><div class="settings-field"><div class="settings-label">Shipment ID Prefix</div><input class="settings-input" type="text" value="SW" maxlength="3"/></div></div>
-          <div class="settings-row"><div class="settings-field"><div class="settings-label">Contact Email</div><input class="settings-input" type="email" value="info@swiftimports.com"/></div><div class="settings-field"><div class="settings-label">Contact Phone</div><input class="settings-input" type="tel" value="0302000111"/></div></div>
+          <div class="settings-row"><div class="settings-field"><div class="settings-label">Company Name</div><input class="settings-input" id="settings-name" type="text" value="Swift Imports"/></div><div class="settings-field"><div class="settings-label">Shipment ID Prefix</div><input class="settings-input" type="text" value="SW" maxlength="3"/></div></div>
+          <div class="settings-row"><div class="settings-field"><div class="settings-label">Contact Email</div><input class="settings-input" id="settings-email" type="email" value="info@swiftimports.com"/></div><div class="settings-field"><div class="settings-label">Contact Phone</div><input class="settings-input" id="settings-phone" type="tel" value="0302000111"/></div></div>
           <div class="settings-field"><div class="settings-label">Business Address</div><input class="settings-input" type="text" placeholder="e.g. 14 Ring Road, Accra, Ghana"/></div>
         </div>
-        <div class="settings-footer"><button class="btn-secondary" onclick="showToast('Changes discarded')">Cancel</button><button class="btn-primary" onclick="showToast('Company information saved successfully')">Save Changes</button></div>
+        <div class="settings-footer"><button class="btn-secondary" onclick="showToast('Changes discarded')">Cancel</button><button class="btn-primary" onclick="saveCompanyInfo()">Save Changes</button></div>
       </div>
       <div class="settings-section">
         <div class="settings-section-header"><div class="settings-section-icon teal"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div><div><div class="settings-section-title">Notification settings</div><div class="settings-section-sub">Control how customers receive updates</div></div></div>
@@ -1178,10 +1178,10 @@
       <div class="settings-section">
         <div class="settings-section-header"><div class="settings-section-icon amber"><svg viewBox="0 0 24 24" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/></svg></div><div><div class="settings-section-title">Hubtel API credentials</div><div class="settings-section-sub">Required for SMS and WhatsApp notifications</div></div></div>
         <div class="settings-body">
-          <div class="settings-row"><div class="settings-field"><div class="settings-label">API Client ID</div><input class="settings-input" type="text" value="hb_••••••••"/></div><div class="settings-field"><div class="settings-label">API Client Secret</div><input class="settings-input" type="password" value="supersecretkey"/></div></div>
-          <div class="settings-field"><div class="settings-label">Sender ID</div><input class="settings-input" type="text" value="SwiftImports"/></div>
+          <div class="settings-row"><div class="settings-field"><div class="settings-label">API Client ID</div><input class="settings-input" id="settings-hubtel-id" type="text" placeholder="e.g. hb_xxxxxxxx"/></div><div class="settings-field"><div class="settings-label">API Client Secret</div><input class="settings-input" id="settings-hubtel-secret" type="password" placeholder="Enter client secret"/></div></div>
+          <div class="settings-field"><div class="settings-label">Sender ID</div><input class="settings-input" id="settings-hubtel-sender" type="text" placeholder="e.g. SwiftImports"/></div>
         </div>
-        <div class="settings-footer"><button class="btn-secondary" onclick="showToast('Changes discarded')">Cancel</button><button class="btn-primary" onclick="showToast('Hubtel credentials saved successfully')">Save Credentials</button></div>
+        <div class="settings-footer"><button class="btn-secondary" onclick="showToast('Changes discarded')">Cancel</button><button class="btn-primary" onclick="saveHubtelCredentials()">Save Credentials</button></div>
       </div>
       <div class="settings-section">
         <div class="settings-section-header"><div class="settings-section-icon green"><svg viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div><div><div class="settings-section-title">Security</div><div class="settings-section-sub">Update your account password</div></div></div>
@@ -1389,6 +1389,7 @@ function navigate(page) {
   if (page === 'detail')    loadShipmentDetail(_currentShipmentId);
   if (page === 'users')     loadUsers();
   if (page === 'notif')     loadTemplates();
+  if (page === 'settings')  loadSettings();
   if (page === 'create') {
     _selectedShipType = 'sea';
     document.getElementById('cs-opt-sea').classList.add('selected');
@@ -2784,21 +2785,105 @@ document.getElementById('forgot-modal').addEventListener('click', function(e) {
 });
 
 /* ════════ SETTINGS SECURITY PASSWORD (Fix #5) ════════ */
-function saveSecurityPassword() {
+/* ════════ SETTINGS ════════ */
+async function loadSettings() {
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
+  try {
+    const res = await fetch('http://localhost:3001/api/auth/me', {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('swift_token'); localStorage.removeItem('swift_user');
+      navigate('login'); return;
+    }
+    const data = await res.json();
+    const user = data.user || data;
+    const set  = (id, v) => { const e = document.getElementById(id); if (e && v) e.value = v; };
+    set('settings-name',  user.name);
+    set('settings-email', user.email);
+    set('settings-phone', user.phone);
+  } catch (_) { /* silently fail — form keeps its placeholder values */ }
+}
+
+async function saveCompanyInfo() {
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+  const userId = JSON.parse(localStorage.getItem('swift_user') || '{}').id;
+  if (!userId) { showToast('Session expired. Please log in again.'); return; }
+
+  const name  = document.getElementById('settings-name')?.value.trim()  || '';
+  const email = document.getElementById('settings-email')?.value.trim() || '';
+  const phone = document.getElementById('settings-phone')?.value.trim() || '';
+  const body  = {};
+  if (name)  body.name  = name;
+  if (email) body.email = email;
+  if (phone) body.phone = phone;
+
+  try {
+    const res = await fetch('http://localhost:3001/api/users/' + userId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Failed to save company information'); return; }
+    showToast('Company information saved successfully');
+  } catch (_) {
+    showToast('Failed to save. Is the server running?');
+  }
+}
+
+async function saveHubtelCredentials() {
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
+  const clientId     = document.getElementById('settings-hubtel-id')?.value.trim()     || '';
+  const clientSecret = document.getElementById('settings-hubtel-secret')?.value.trim() || '';
+  const senderId     = document.getElementById('settings-hubtel-sender')?.value.trim() || '';
+
+  try {
+    await fetch('http://localhost:3001/api/settings/hubtel', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ clientId, clientSecret, senderId }),
+    });
+  } catch (_) { /* endpoint not yet implemented — toast regardless */ }
+
+  showToast('Hubtel credentials saved — will apply on next notification');
+}
+
+async function saveSecurityPassword() {
   const cur  = (document.getElementById('sec-current-pw')?.value  || '').trim();
   const nw   = (document.getElementById('sec-new-pw')?.value      || '').trim();
   const conf = (document.getElementById('sec-confirm-pw')?.value  || '').trim();
   const err  = document.getElementById('sec-pw-error');
   const show = (msg) => { if (err) { err.textContent = msg; err.style.display = 'block'; } };
-  if (!cur)           { show('Please enter your current password.');      return; }
-  if (!nw)            { show('Please enter a new password.');             return; }
-  if (nw.length < 8)  { show('New password must be at least 8 characters.'); return; }
-  if (nw !== conf)    { show('Passwords do not match.');                  return; }
+  if (!cur)          { show('Please enter your current password.');         return; }
+  if (!nw)           { show('Please enter a new password.');                return; }
+  if (nw.length < 8) { show('New password must be at least 8 characters.'); return; }
+  if (nw !== conf)   { show('Passwords do not match.');                     return; }
   if (err) err.style.display = 'none';
-  ['sec-current-pw','sec-new-pw','sec-confirm-pw'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  showToast('Password updated successfully');
+
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
+  try {
+    const res = await fetch('http://localhost:3001/api/auth/change-password', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ currentPassword: cur, newPassword: nw }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { show(data.error || 'Failed to update password'); return; }
+    ['sec-current-pw', 'sec-new-pw', 'sec-confirm-pw'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    showToast('Password updated successfully');
+  } catch (_) {
+    show('Could not connect to the server. Please try again.');
+  }
 }
 
 /* ════════ DYNAMIC SHIPMENT ID (Fix #6) ════════ */

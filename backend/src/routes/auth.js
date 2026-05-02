@@ -81,4 +81,28 @@ router.get('/me', requireAuth, (req, res) => {
   res.json({ user: req.user });
 });
 
+router.patch('/change-password', requireAuth, async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword) return res.status(400).json({ error: 'Current password is required' });
+    if (!newPassword)     return res.status(400).json({ error: 'New password is required' });
+    if (newPassword.length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters' });
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { id: true, passwordHash: true },
+    });
+
+    const valid = user?.passwordHash && await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({ where: { id: req.user.id }, data: { passwordHash } });
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;
