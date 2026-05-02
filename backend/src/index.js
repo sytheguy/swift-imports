@@ -59,10 +59,14 @@ app.use((req, res) => {
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`\n🚀  Swift Imports API running on http://localhost:${PORT}`);
-  console.log(`   Health check: http://localhost:${PORT}/api/health\n`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`\n🚀  Swift Imports API running on http://localhost:${PORT}`);
+    console.log(`   Health check: http://localhost:${PORT}/api/health\n`);
+  });
 
-process.on('SIGINT', () => prisma.$disconnect().then(() => process.exit(0)));
-process.on('SIGTERM', () => prisma.$disconnect().then(() => process.exit(0)));
+  process.on('SIGINT', () => prisma.$disconnect().then(() => process.exit(0)));
+  process.on('SIGTERM', () => prisma.$disconnect().then(() => process.exit(0)));
+}
+
+export default app;

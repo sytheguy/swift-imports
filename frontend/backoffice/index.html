@@ -1265,6 +1265,10 @@
 <script>
 'use strict';
 
+const API_BASE = window.location.hostname === 'localhost'
+  ? 'http://localhost:3001'
+  : '';
+
 /* ════════ SHIPMENTS LIST ════════ */
 const _STATUS_CSS   = ['warehouse-cn','enroute','arrived','customs','warehouse-gh','ofd','delivered'];
 const _STATUS_LABEL = ['In Warehouse (China)','En Route','Arrived in Ghana','Cleared Customs','At Warehouse (Ghana)','Out for Delivery','Delivered'];
@@ -1282,7 +1286,7 @@ async function loadShipments() {
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#8A9DB5;padding:24px;">Loading…</td></tr>';
 
   try {
-    const res = await fetch('http://localhost:3001/api/shipments', {
+    const res = await fetch(API_BASE + '/api/shipments', {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -1339,7 +1343,7 @@ async function loadShipmentDetail(id) {
   if (!token) { navigate('login'); return; }
 
   try {
-    const res = await fetch('http://localhost:3001/api/shipments/' + id, {
+    const res = await fetch(API_BASE + '/api/shipments/' + id, {
       headers: { Authorization: 'Bearer ' + token },
     });
 
@@ -1577,7 +1581,7 @@ async function handleFileUpload(input) {
 
   try {
     const res = await fetch(
-      'http://localhost:3001/api/upload/customers?shipmentId=' + encodeURIComponent(shipmentId),
+      API_BASE + '/api/upload/customers?shipmentId=' + encodeURIComponent(shipmentId),
       { method: 'POST', headers: { Authorization: 'Bearer ' + token }, body: formData }
     );
     const data = await res.json();
@@ -1664,7 +1668,7 @@ async function createShipment() {
   setConfirmBtn(false);
 
   try {
-    const res = await fetch('http://localhost:3001/api/shipments', {
+    const res = await fetch(API_BASE + '/api/shipments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ id, type: type.toUpperCase(), date: dateVal, notes: notes || undefined }),
@@ -1704,7 +1708,7 @@ async function createShipment() {
     }
     if (_parsedCustomers.length > 0) {
       try {
-        const confirmRes = await fetch('http://localhost:3001/api/upload/customers/confirm', {
+        const confirmRes = await fetch(API_BASE + '/api/upload/customers/confirm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
           body: JSON.stringify({ shipmentId: data.id, customers: _parsedCustomers }),
@@ -1777,7 +1781,7 @@ async function loadUsers() {
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#8A9DB5;padding:24px;">Loading…</td></tr>';
 
   try {
-    const res = await fetch('http://localhost:3001/api/users', {
+    const res = await fetch(API_BASE + '/api/users', {
       headers: { Authorization: 'Bearer ' + token },
     });
     if (res.status === 401 || res.status === 403) {
@@ -1962,7 +1966,7 @@ async function confirmStatusUpdate() {
   closeStatusModal();
 
   try {
-    const res = await fetch('http://localhost:3001/api/shipments/' + currentShipment.id + '/status', {
+    const res = await fetch(API_BASE + '/api/shipments/' + currentShipment.id + '/status', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ status: _API_STATUS[idx] }),
@@ -2147,7 +2151,7 @@ async function markCurrentCustomerDelivered() {
 
   const c = customers[_selectedCustomer];
   try {
-    const res = await fetch('http://localhost:3001/api/customers/' + c.id + '/deliver', {
+    const res = await fetch(API_BASE + '/api/customers/' + c.id + '/deliver', {
       method: 'PATCH',
       headers: { Authorization: 'Bearer ' + token },
     });
@@ -2217,7 +2221,7 @@ async function loadTemplates() {
   if (!token) { navigate('login'); return; }
 
   try {
-    const res = await fetch('http://localhost:3001/api/notifications/templates', {
+    const res = await fetch(API_BASE + '/api/notifications/templates', {
       headers: { Authorization: 'Bearer ' + token },
     });
     if (res.status === 401 || res.status === 403) {
@@ -2253,12 +2257,12 @@ async function saveTemplates() {
 
   try {
     const [resS, resA] = await Promise.all([
-      fetch('http://localhost:3001/api/notifications/templates', {
+      fetch(API_BASE + '/api/notifications/templates', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
         body: JSON.stringify({ type: 'SEA', templates: tplVals.sea.map((message, stage) => ({ stage, message })) }),
       }),
-      fetch('http://localhost:3001/api/notifications/templates', {
+      fetch(API_BASE + '/api/notifications/templates', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
         body: JSON.stringify({ type: 'AIR', templates: tplVals.air.map((message, stage) => ({ stage, message })) }),
@@ -2300,7 +2304,7 @@ async function sendInvite() {
   if (isEmail) body.email = contact; else body.phone = contact;
 
   try {
-    const res = await fetch('http://localhost:3001/api/users/invite', {
+    const res = await fetch(API_BASE + '/api/users/invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify(body),
@@ -2346,7 +2350,7 @@ async function saveEditUser() {
   if (isEmail) body.email = contact; else body.phone = contact;
 
   try {
-    const res = await fetch('http://localhost:3001/api/users/' + _editUserId, {
+    const res = await fetch(API_BASE + '/api/users/' + _editUserId, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify(body),
@@ -2390,7 +2394,7 @@ async function confirmDeactivate() {
   if (!token) { navigate('login'); return; }
 
   try {
-    const res = await fetch('http://localhost:3001/api/users/' + _deactivateUserId + '/status', {
+    const res = await fetch(API_BASE + '/api/users/' + _deactivateUserId + '/status', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ status: 'INACTIVE' }),
@@ -2425,7 +2429,7 @@ async function activateUser(btn) {
   const name   = nameEl ? nameEl.textContent : 'User';
 
   try {
-    const res = await fetch('http://localhost:3001/api/users/' + id + '/status', {
+    const res = await fetch(API_BASE + '/api/users/' + id + '/status', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ status: 'ACTIVE' }),
@@ -2450,7 +2454,7 @@ async function resendInvite(btn) {
   const id = btn.closest('tr').dataset.id;
 
   try {
-    const res = await fetch('http://localhost:3001/api/users/' + id + '/resend-invite', {
+    const res = await fetch(API_BASE + '/api/users/' + id + '/resend-invite', {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + token },
     });
@@ -2524,7 +2528,7 @@ async function trackShipment() {
   if (!input) return;
 
   try {
-    const res = await fetch('http://localhost:3001/api/portal/track/' + input);
+    const res = await fetch(API_BASE + '/api/portal/track/' + input);
     if (res.status === 404) {
       errEl.textContent = 'We couldn\'t find that tracking number. Please check and try again.';
       errEl.style.display = 'block';
@@ -2630,7 +2634,7 @@ async function saveEditShipment() {
   showToast('Shipment ' + currentShipment.id + ' updated');
 
   try {
-    const res = await fetch('http://localhost:3001/api/shipments/' + currentShipment.id, {
+    const res = await fetch(API_BASE + '/api/shipments/' + currentShipment.id, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ type, date: dateV, notes: notes || undefined }),
@@ -2701,7 +2705,7 @@ async function saveEditCustomer() {
   showToast(name + '\'s details saved');
 
   try {
-    const res = await fetch('http://localhost:3001/api/customers/' + customerId, {
+    const res = await fetch(API_BASE + '/api/customers/' + customerId, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ name, phone, items: validItems }),
@@ -2736,7 +2740,7 @@ async function confirmRemoveCustomer() {
   showToast(name + ' removed from shipment');
 
   try {
-    const res = await fetch('http://localhost:3001/api/customers/' + id, {
+    const res = await fetch(API_BASE + '/api/customers/' + id, {
       method: 'DELETE',
       headers: { Authorization: 'Bearer ' + token },
     });
@@ -2805,7 +2809,7 @@ async function saveAddCustomer() {
   const newId = currentShipment.id + '-T' + String(_trackingCounter).padStart(4, '0');
 
   try {
-    const res = await fetch('http://localhost:3001/api/customers', {
+    const res = await fetch(API_BASE + '/api/customers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ id: newId, name, phone, shipmentId: currentShipment.id, items: validItems }),
@@ -2887,7 +2891,7 @@ async function loadSettings() {
   if (!token) { navigate('login'); return; }
 
   try {
-    const res = await fetch('http://localhost:3001/api/auth/me', {
+    const res = await fetch(API_BASE + '/api/auth/me', {
       headers: { Authorization: 'Bearer ' + token },
     });
     if (res.status === 401 || res.status === 403) {
@@ -2918,7 +2922,7 @@ async function saveCompanyInfo() {
   if (phone) body.phone = phone;
 
   try {
-    const res = await fetch('http://localhost:3001/api/users/' + userId, {
+    const res = await fetch(API_BASE + '/api/users/' + userId, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify(body),
@@ -2940,7 +2944,7 @@ async function saveHubtelCredentials() {
   const senderId     = document.getElementById('settings-hubtel-sender')?.value.trim() || '';
 
   try {
-    await fetch('http://localhost:3001/api/settings/hubtel', {
+    await fetch(API_BASE + '/api/settings/hubtel', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ clientId, clientSecret, senderId }),
@@ -2966,7 +2970,7 @@ async function saveSecurityPassword() {
   if (!token) { navigate('login'); return; }
 
   try {
-    const res = await fetch('http://localhost:3001/api/auth/change-password', {
+    const res = await fetch(API_BASE + '/api/auth/change-password', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ currentPassword: cur, newPassword: nw }),
@@ -3020,7 +3024,7 @@ async function doLogin(btnEl) {
   const body = isEmail ? { email: credential, password } : { phone: credential, password };
 
   try {
-    const res = await fetch('http://localhost:3001/api/auth/login', {
+    const res = await fetch(API_BASE + '/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

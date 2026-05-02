@@ -1,23 +1,23 @@
 {
   "version": 2,
-  "buildCommand": "cd backend && npm install && npx prisma generate",
-  "functions": {
-    "backend/src/index.js": {
-      "runtime": "nodejs20.x"
-    }
-  },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/backend/src/index.js" },
-    { "source": "/portal", "destination": "/frontend/portal/index.html" },
-    { "source": "/portal/(.*)", "destination": "/frontend/portal/index.html" },
-    { "source": "/(.*)", "destination": "/frontend/backoffice/index.html" }
-  ],
-  "headers": [
+  "builds": [
     {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
-      ]
+      "src": "backend/src/index.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "frontend/backoffice/index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "frontend/portal/index.html",
+      "use": "@vercel/static"
     }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "backend/src/index.js" },
+    { "src": "/portal", "dest": "frontend/portal/index.html" },
+    { "src": "/portal/(.*)", "dest": "frontend/portal/index.html" },
+    { "src": "/(.*)", "dest": "frontend/backoffice/index.html" }
   ]
 }
