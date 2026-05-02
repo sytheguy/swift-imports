@@ -1534,6 +1534,7 @@ function goToCreateStep(step) {
     c1.className = 'step-circle done'; c1.textContent = '✓';
     c2.className = 'step-circle active'; n2.className = 'step-name'; conn.className = 'step-connector done';
     /* Full reset of upload zone every time step 2 opens */
+    _parsedCustomers = [];
     document.getElementById('cs-preview').style.display = 'none';
     document.getElementById('cs-upload-zone').classList.remove('has-file');
     document.getElementById('cs-upload-title').textContent = 'Click to browse or drag & drop your file';
@@ -1545,27 +1546,98 @@ function goToCreateStep(step) {
     setConfirmBtn(false);
   }
 }
-function handleFileUpload(input) {
+async function handleFileUpload(input) {
   if (!input.files || !input.files[0]) return;
-  const file = input.files[0];
+  const file  = input.files[0];
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
+  const sizeStr    = (file.size / 1024).toFixed(1) + ' KB · Click to change';
+  const noticeEl   = document.getElementById('cs-notice');
+  const showError  = (msg) => {
+    document.getElementById('cs-upload-sub').textContent = sizeStr;
+    document.getElementById('cs-preview').style.display  = 'none';
+    noticeEl.className   = 'notice-box error';
+    noticeEl.innerHTML   = msg;
+    setConfirmBtn(false);
+  };
+
   document.getElementById('cs-upload-title').textContent = file.name;
-  document.getElementById('cs-upload-sub').textContent   = (file.size/1024).toFixed(1) + ' KB · Click to change';
+  document.getElementById('cs-upload-sub').textContent   = 'Parsing file…';
   document.getElementById('cs-upload-zone').classList.add('has-file');
-  document.getElementById('cs-preview').style.display = 'block';
-  document.getElementById('cs-preview-badge').className   = 'preview-badge success';
-  document.getElementById('cs-preview-badge').textContent = '5 customers · 5 items · all valid';
-  document.getElementById('cs-preview-body').innerHTML =
-    '<tr><td>1</td><td>Kofi Mensah</td><td>0241234567</td><td>CN-887231-A</td><td>Nike Air Max Size 10</td><td><span style="color:#065F46;font-weight:600;font-size:11px;">✓ Valid</span></td></tr>' +
-    '<tr><td>2</td><td>Kofi Mensah</td><td>0241234567</td><td>CN-887231-A</td><td>iPhone 15 Case Black</td><td><span style="color:#065F46;font-weight:600;font-size:11px;">✓ Valid</span></td></tr>' +
-    '<tr><td>3</td><td>Ama Owusu</td><td>0557654321</td><td>CN-887232-B</td><td>Brazilian Wigs x3</td><td><span style="color:#065F46;font-weight:600;font-size:11px;">✓ Valid</span></td></tr>' +
-    '<tr><td>4</td><td>Abena Frimpong</td><td>0209876543</td><td>CN-887234-D</td><td>Portable Speaker</td><td><span style="color:#065F46;font-weight:600;font-size:11px;">✓ Valid</span></td></tr>' +
-    '<tr><td>5</td><td>Kwame Asante</td><td>0277001122</td><td>CN-887233-C</td><td>Smartwatch Band</td><td><span style="color:#065F46;font-weight:600;font-size:11px;">✓ Valid</span></td></tr>';
-  document.getElementById('cs-notice').className   = 'notice-box success';
-  document.getElementById('cs-notice').textContent = '✓ All rows are valid. Ready to confirm and create this shipment.';
-  setConfirmBtn(true);
+  document.getElementById('cs-preview').style.display    = 'none';
+  noticeEl.className   = 'notice-box';
+  noticeEl.textContent = '';
+  _parsedCustomers = [];
+  setConfirmBtn(false);
+
+  const shipmentId = document.getElementById('cs-shipment-id-field')?.value || '';
+  const formData   = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch(
+      'http://localhost:3001/api/upload/customers?shipmentId=' + encodeURIComponent(shipmentId),
+      { method: 'POST', headers: { Authorization: 'Bearer ' + token }, body: formData }
+    );
+    const data = await res.json();
+
+    if (!res.ok) {
+      showError('✕ ' + (data.error || 'Failed to parse file'));
+      return;
+    }
+
+    document.getElementById('cs-upload-sub').textContent = sizeStr;
+
+    if (!data.valid || data.errors.length > 0) {
+      showError(
+        '<b>✕ ' + data.errors.length + ' error' + (data.errors.length !== 1 ? 's' : '') + ' found — fix your file and re-upload:</b>' +
+        '<ul style="margin:6px 0 0 16px;padding:0;">' +
+        data.errors.map(e => `<li>Row ${e.row}: ${e.message}</li>`).join('') +
+        '</ul>'
+      );
+      return;
+    }
+
+    _parsedCustomers = data.customers;
+
+    const pl = (n, w) => n + ' ' + w + (n !== 1 ? 's' : '');
+    document.getElementById('cs-preview').style.display     = 'block';
+    document.getElementById('cs-preview-badge').className   = 'preview-badge success';
+    document.getElementById('cs-preview-badge').textContent =
+      pl(data.customerCount, 'customer') + ' · ' + pl(data.itemCount, 'item') + ' · all valid';
+
+    const allRows = data.customers.flatMap(c =>
+      c.items.map(it => ({ name: c.name, phone: c.phone, otn: it.otn || '—', description: it.description }))
+    );
+    const previewRows = allRows.slice(0, 10);
+    let rowHtml = previewRows.map((r, i) =>
+      `<tr>
+        <td>${i + 1}</td>
+        <td>${r.name}</td>
+        <td>${r.phone}</td>
+        <td>${r.otn}</td>
+        <td>${r.description}</td>
+        <td><span style="color:#065F46;font-weight:600;font-size:11px;">✓ Valid</span></td>
+      </tr>`
+    ).join('');
+    if (allRows.length > 10) {
+      rowHtml += `<tr><td colspan="6" style="text-align:center;color:#64748B;font-size:12px;padding:10px;">` +
+        `Showing 10 of ${allRows.length} rows — all ${data.itemCount} item${data.itemCount !== 1 ? 's' : ''} will be imported on confirm.` +
+        `</td></tr>`;
+    }
+    document.getElementById('cs-preview-body').innerHTML = rowHtml;
+
+    noticeEl.className   = 'notice-box success';
+    noticeEl.textContent = '✓ All rows are valid. Ready to confirm and create this shipment.';
+    setConfirmBtn(true);
+  } catch (_) {
+    showError('✕ Could not connect to the server. Please try again.');
+  }
 }
 /* FIX #4: sole owner of confirm button onclick */
 let _selectedShipType = 'sea'; /* tracks create-form selection */
+let _parsedCustomers  = [];
 function selectType(type) {
   _selectedShipType = type;
   document.getElementById('cs-opt-sea').classList.toggle('selected', type === 'sea');
@@ -1599,7 +1671,11 @@ async function createShipment() {
     });
     const data = await res.json();
     if (!res.ok) {
-      showToast(data.error || 'Failed to create shipment');
+      if (res.status === 409) {
+        showToast('A shipment with this ID already exists — please change the date or type and try again');
+      } else {
+        showToast(data.error || 'Failed to create shipment');
+      }
       setConfirmBtn(true);
       return;
     }
@@ -1626,8 +1702,28 @@ async function createShipment() {
       const total = document.querySelectorAll('#shipments-tbody tr').length;
       pi.textContent = 'Showing 1–' + total + ' of ' + total + ' shipments';
     }
-    navigate('shipments');
-    showToast('Shipment ' + data.id + ' created successfully');
+    if (_parsedCustomers.length > 0) {
+      try {
+        const confirmRes = await fetch('http://localhost:3001/api/upload/customers/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ shipmentId: data.id, customers: _parsedCustomers }),
+        });
+        const confirmData = await confirmRes.json();
+        navigate('shipments');
+        if (confirmRes.ok) {
+          showToast('Shipment ' + data.id + ' created with ' + confirmData.created + ' customer' + (confirmData.created === 1 ? '' : 's'));
+        } else {
+          showToast(confirmData.error || 'Shipment created but failed to save customers');
+        }
+      } catch (_) {
+        navigate('shipments');
+        showToast('Shipment created but failed to save customers');
+      }
+    } else {
+      navigate('shipments');
+      showToast('Shipment ' + data.id + ' created successfully');
+    }
   } catch (_) {
     showToast('Failed to create shipment. Is the server running?');
     setConfirmBtn(true);
