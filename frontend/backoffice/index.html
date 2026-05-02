@@ -492,9 +492,9 @@
     <div id="modal-form-state">
       <div class="modal-title">Add new user</div>
       <div class="modal-sub">An invite will be sent via SMS or WhatsApp for them to set up their password.</div>
-      <div class="modal-form-group"><div class="modal-label">Full Name</div><input class="modal-input" type="text" placeholder="e.g. Kofi Mensah"/></div>
-      <div class="modal-form-group"><div class="modal-label">Email or Phone Number</div><input class="modal-input" type="text" placeholder="email@example.com or 024XXXXXXX"/></div>
-      <div class="modal-form-group"><div class="modal-label">Role</div><select class="modal-input"><option value="">Select a role…</option><option value="admin">Admin — full access</option><option value="staff">Staff — limited access</option></select></div>
+      <div class="modal-form-group"><div class="modal-label">Full Name</div><input class="modal-input" id="au-name" type="text" placeholder="e.g. Kofi Mensah"/></div>
+      <div class="modal-form-group"><div class="modal-label">Email or Phone Number</div><input class="modal-input" id="au-contact" type="text" placeholder="email@example.com or 024XXXXXXX"/></div>
+      <div class="modal-form-group"><div class="modal-label">Role</div><select class="modal-input" id="au-role"><option value="">Select a role…</option><option value="admin">Admin — full access</option><option value="staff">Staff — limited access</option></select></div>
       <div class="modal-footer">
         <button class="modal-btn-cancel" onclick="closeAddUserModal()">Cancel</button>
         <button class="modal-btn-primary" onclick="sendInvite()">
@@ -1043,9 +1043,9 @@
     <div class="topbar"><div><div class="topbar-title">User Management</div><div class="topbar-sub">Manage staff and admin access to the system</div></div><div class="topbar-right"><button class="btn-primary" onclick="openAddUserModal()"><svg viewBox="0 0 24 24" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add User</button></div></div>
     <div class="content">
       <div class="stats">
-        <div class="stat-card"><div class="stat-icon navy"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><div class="stat-label">Total Users</div><div class="stat-value">5</div><div class="stat-sub">All accounts</div></div>
-        <div class="stat-card"><div class="stat-icon teal"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="stat-label">Admins</div><div class="stat-value">2</div><div class="stat-sub">Full access</div></div>
-        <div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="stat-label">Staff</div><div class="stat-value">3</div><div class="stat-sub">Limited access</div></div>
+        <div class="stat-card"><div class="stat-icon navy"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><div class="stat-label">Total Users</div><div class="stat-value" id="users-stat-total">—</div><div class="stat-sub">All accounts</div></div>
+        <div class="stat-card"><div class="stat-icon teal"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="stat-label">Admins</div><div class="stat-value" id="users-stat-admins">—</div><div class="stat-sub">Full access</div></div>
+        <div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="stat-label">Staff</div><div class="stat-value" id="users-stat-staff">—</div><div class="stat-sub">Limited access</div></div>
         <div class="stat-card"><div class="stat-icon amber"><svg viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="stat-label">Pending Invites</div><div class="stat-value" id="pending-count">1</div><div class="stat-sub">Awaiting setup</div></div>
       </div>
       <!-- FIX #10: role filter actually filters rows -->
@@ -1056,11 +1056,6 @@
       <div class="table-card">
         <table><thead><tr><th>Name</th><th>Email / Phone</th><th>Role</th><th>Date Added</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody id="users-tbody">
-          <tr data-role="admin" data-name="ama kusi"><td><div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:#00BCD4;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0D2B4E;flex-shrink:0;">AK</div><div><div style="font-weight:600;color:#0D2B4E;">Ama Kusi</div><div style="font-size:11px;color:#A0B4C8;">You</div></div></div></td><td><span class="date-text">ama@swiftimports.com</span></td><td><span class="role-badge admin">Admin</span></td><td><span class="date-text">01 Jan 2026</span></td><td><span class="status-pill active"><span class="status-dot"></span>Active</span></td><td><span style="font-size:11px;font-weight:600;color:#A0B4C8;background:#F4F7FA;border:.5px solid #E0E6EF;border-radius:6px;padding:5px 12px;display:inline-block;">This is you</span></td></tr>
-          <tr data-role="admin" data-name="kweku acheampong"><td><div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:#EEF1F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#4A637A;flex-shrink:0;">KA</div><div><div style="font-weight:600;color:#0D2B4E;">Kweku Acheampong</div></div></div></td><td><span class="date-text">kweku@swiftimports.com</span></td><td><span class="role-badge admin">Admin</span></td><td><span class="date-text">15 Jan 2026</span></td><td><span class="status-pill active"><span class="status-dot"></span>Active</span></td><td><div class="actions"><button class="action-btn primary" onclick="openEditUser(this,'Kweku Acheampong','kweku@swiftimports.com','admin')">Edit</button><button class="action-btn" style="color:#DC2626;border-color:#FECACA;" onclick="deactivateUser(this)">Deactivate</button></div></td></tr>
-          <tr data-role="staff" data-name="efua agyei"><td><div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:#EEF1F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#4A637A;flex-shrink:0;">EA</div><div><div style="font-weight:600;color:#0D2B4E;">Efua Agyei</div></div></div></td><td><span class="date-text">0244001122</span></td><td><span class="role-badge staff">Staff</span></td><td><span class="date-text">01 Feb 2026</span></td><td><span class="status-pill active"><span class="status-dot"></span>Active</span></td><td><div class="actions"><button class="action-btn primary" onclick="openEditUser(this,'Efua Agyei','0244001122','staff')">Edit</button><button class="action-btn" style="color:#DC2626;border-color:#FECACA;" onclick="deactivateUser(this)">Deactivate</button></div></td></tr>
-          <tr data-role="staff" data-name="yaw dankwa"><td><div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:#EEF1F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#4A637A;flex-shrink:0;">YD</div><div><div style="font-weight:600;color:#0D2B4E;">Yaw Dankwa</div></div></div></td><td><span class="date-text">0277334455</span></td><td><span class="role-badge staff">Staff</span></td><td><span class="date-text">10 Feb 2026</span></td><td><span class="status-pill inactive"><span class="status-dot"></span>Inactive</span></td><td><div class="actions"><button class="action-btn primary" onclick="openEditUser(this,'Yaw Dankwa','0277334455','staff')">Edit</button><button class="action-btn" style="color:#16A34A;border-color:#86EFAC;" onclick="activateUser(this)">Activate</button></div></td></tr>
-          <tr data-role="staff" data-name="abena boateng"><td><div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:#FFF7ED;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#C2410C;flex-shrink:0;">AB</div><div><div style="font-weight:600;color:#0D2B4E;">Abena Boateng</div><div style="font-size:11px;color:#EA580C;">Invite pending</div></div></div></td><td><span class="date-text">abena@swiftimports.com</span></td><td><span class="role-badge staff">Staff</span></td><td><span class="date-text">20 Apr 2026</span></td><td><span class="status-pill inactive"><span class="status-dot"></span>Pending</span></td><td><div class="actions"><button class="action-btn" style="color:#EA580C;border-color:#FCD34D;" onclick="resendInvite(this,'Abena Boateng','abena@swiftimports.com')">Resend Invite</button></div></td></tr>
         </tbody></table>
       </div>
     </div>
@@ -1392,6 +1387,7 @@ function navigate(page) {
   document.getElementById('page-' + page).classList.add('active');
   if (page === 'shipments') loadShipments();
   if (page === 'detail')    loadShipmentDetail(_currentShipmentId);
+  if (page === 'users')     loadUsers();
   if (page === 'create') {
     _selectedShipType = 'sea';
     document.getElementById('cs-opt-sea').classList.add('selected');
@@ -1633,6 +1629,77 @@ async function createShipment() {
   } catch (_) {
     showToast('Failed to create shipment. Is the server running?');
     setConfirmBtn(true);
+  }
+}
+
+/* ════════ USER MANAGEMENT ════════ */
+function _esc(s) { return (s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+
+function _renderUserRow(user, currentUserId) {
+  const isYou   = user.id === currentUserId;
+  const role    = user.role.toLowerCase();
+  const contact = user.email || user.phone || '—';
+  const initials = user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const dateStr  = _fmtDate(user.createdAt);
+
+  const avatarBg    = isYou ? '#00BCD4' : (user.status === 'PENDING' ? '#FFF7ED' : '#EEF1F5');
+  const avatarColor = isYou ? '#0D2B4E' : (user.status === 'PENDING' ? '#C2410C' : '#4A637A');
+  const subtext     = user.status === 'PENDING'
+    ? '<div style="font-size:11px;color:#EA580C;">Invite pending</div>' : '';
+
+  const statusClass = user.status === 'ACTIVE' ? 'active' : 'inactive';
+  const statusLabel = user.status === 'PENDING' ? 'Pending' : (user.status === 'ACTIVE' ? 'Active' : 'Inactive');
+
+  let actions;
+  if (isYou) {
+    actions = '<span style="font-size:11px;font-weight:600;color:#A0B4C8;background:#F4F7FA;border:.5px solid #E0E6EF;border-radius:6px;padding:5px 12px;display:inline-block;">This is you</span>';
+  } else if (user.status === 'PENDING') {
+    actions = `<div class="actions"><button class="action-btn" style="color:#EA580C;border-color:#FCD34D;" onclick="resendInvite(this)">Resend Invite</button></div>`;
+  } else if (user.status === 'ACTIVE') {
+    actions = `<div class="actions"><button class="action-btn primary" onclick="openEditUser(this,'${_esc(user.name)}','${_esc(contact)}','${role}')">Edit</button><button class="action-btn" style="color:#DC2626;border-color:#FECACA;" onclick="deactivateUser(this)">Deactivate</button></div>`;
+  } else {
+    actions = `<div class="actions"><button class="action-btn primary" onclick="openEditUser(this,'${_esc(user.name)}','${_esc(contact)}','${role}')">Edit</button><button class="action-btn" style="color:#16A34A;border-color:#86EFAC;" onclick="activateUser(this)">Activate</button></div>`;
+  }
+
+  return `<tr data-role="${role}" data-name="${user.name.toLowerCase()}" data-id="${user.id}">
+    <td><div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${avatarColor};flex-shrink:0;">${initials}</div><div><div style="font-weight:600;color:#0D2B4E;">${user.name}</div>${subtext}</div></div></td>
+    <td><span class="date-text">${contact}</span></td>
+    <td><span class="role-badge ${role}">${role === 'admin' ? 'Admin' : 'Staff'}</span></td>
+    <td><span class="date-text">${dateStr}</span></td>
+    <td><span class="status-pill ${statusClass}"><span class="status-dot"></span>${statusLabel}</span></td>
+    <td>${actions}</td>
+  </tr>`;
+}
+
+async function loadUsers() {
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
+  const tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#8A9DB5;padding:24px;">Loading…</td></tr>';
+
+  try {
+    const res = await fetch('http://localhost:3001/api/users', {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('swift_token'); localStorage.removeItem('swift_user');
+      navigate('login'); return;
+    }
+    const users = await res.json();
+    const currentUserId = JSON.parse(localStorage.getItem('swift_user') || '{}').id;
+
+    const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    set('users-stat-total',  users.length);
+    set('users-stat-admins', users.filter(u => u.role === 'ADMIN').length);
+    set('users-stat-staff',  users.filter(u => u.role === 'STAFF').length);
+    set('pending-count',     users.filter(u => u.status === 'PENDING').length);
+
+    tbody.innerHTML = users.length
+      ? users.map(u => _renderUserRow(u, currentUserId)).join('')
+      : '<tr><td colspan="6" style="text-align:center;color:#8A9DB5;padding:24px;">No users yet.</td></tr>';
+  } catch (_) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#D32F2F;padding:24px;">Failed to load users. Is the server running?</td></tr>';
   }
 }
 
@@ -2055,23 +2122,50 @@ function saveTemplates() {
 
 /* ════════ USER MANAGEMENT ════════ */
 function openAddUserModal() {
-  document.getElementById('modal-form-state').style.display   = 'block';
+  ['au-name','au-contact'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+  const r = document.getElementById('au-role'); if (r) r.value = '';
+  document.getElementById('modal-form-state').style.display    = 'block';
   document.getElementById('modal-success-state').style.display = 'none';
   document.getElementById('add-user-modal').classList.add('open');
 }
 function closeAddUserModal() { document.getElementById('add-user-modal').classList.remove('open'); }
-function sendInvite() {
-  document.getElementById('modal-form-state').style.display   = 'none';
-  document.getElementById('modal-success-state').style.display = 'flex';
-  const pc = document.getElementById('pending-count');
-  if (pc) pc.textContent = parseInt(pc.textContent) + 1;
+async function sendInvite() {
+  const token   = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+  const name    = document.getElementById('au-name').value.trim();
+  const contact = document.getElementById('au-contact').value.trim();
+  const role    = document.getElementById('au-role').value;
+  if (!name)    { showToast('Name is required'); return; }
+  if (!contact) { showToast('Email or phone is required'); return; }
+  if (!role)    { showToast('Please select a role'); return; }
+
+  const isEmail = contact.includes('@');
+  const body = { name, role };
+  if (isEmail) body.email = contact; else body.phone = contact;
+
+  try {
+    const res = await fetch('http://localhost:3001/api/users/invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Failed to send invite'); return; }
+    document.getElementById('modal-form-state').style.display    = 'none';
+    document.getElementById('modal-success-state').style.display = 'flex';
+    loadUsers();
+  } catch (_) {
+    showToast('Failed to send invite. Is the server running?');
+  }
 }
 document.getElementById('add-user-modal').addEventListener('click', function(e) { if (e.target === this) closeAddUserModal(); });
 
 /* ── Edit User ── */
 let _editUserRow = null;
+let _editUserId  = null;
 function openEditUser(btn, name, contact, role) {
   _editUserRow = btn.closest('tr');
+  _editUserId  = _editUserRow.dataset.id;
   document.getElementById('edit-user-name').value    = name;
   document.getElementById('edit-user-contact').value = contact;
   document.getElementById('edit-user-role').value    = role;
@@ -2079,84 +2173,137 @@ function openEditUser(btn, name, contact, role) {
 }
 function closeEditUserModal() {
   document.getElementById('edit-user-modal').classList.remove('open');
-  _editUserRow = null;
+  _editUserRow = null; _editUserId = null;
 }
-function saveEditUser() {
-  if (!_editUserRow) return;
+async function saveEditUser() {
+  if (!_editUserRow || !_editUserId) return;
   const name    = document.getElementById('edit-user-name').value.trim();
   const contact = document.getElementById('edit-user-contact').value.trim();
   const role    = document.getElementById('edit-user-role').value;
-  if (!name || !contact) { alert('Please fill in all fields.'); return; }
-  /* Update name cell */
-  const nameEl = _editUserRow.querySelector('div[style*="font-weight:600"]');
-  if (nameEl) nameEl.textContent = name;
-  /* Update contact cell */
-  const contactEl = _editUserRow.querySelector('.date-text');
-  if (contactEl) contactEl.textContent = contact;
-  /* Update role badge */
-  const roleBadge = _editUserRow.querySelector('.role-badge');
-  if (roleBadge) {
-    roleBadge.className = 'role-badge ' + role;
-    roleBadge.textContent = role === 'admin' ? 'Admin' : 'Staff';
+  if (!name || !contact) { showToast('Please fill in all fields.'); return; }
+
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
+  const isEmail = contact.includes('@');
+  const body = { name, role };
+  if (isEmail) body.email = contact; else body.phone = contact;
+
+  try {
+    const res = await fetch('http://localhost:3001/api/users/' + _editUserId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Failed to update user'); return; }
+    const roleLower = data.role.toLowerCase();
+    const nameEl = _editUserRow.querySelector('div[style*="font-weight:600"]');
+    if (nameEl) nameEl.textContent = data.name;
+    const contactEl = _editUserRow.querySelector('.date-text');
+    if (contactEl) contactEl.textContent = data.email || data.phone || '—';
+    const roleBadge = _editUserRow.querySelector('.role-badge');
+    if (roleBadge) { roleBadge.className = 'role-badge ' + roleLower; roleBadge.textContent = roleLower === 'admin' ? 'Admin' : 'Staff'; }
+    _editUserRow.dataset.role = roleLower;
+    _editUserRow.dataset.name = data.name.toLowerCase();
+    closeEditUserModal();
+    showToast(data.name + '\'s details updated');
+  } catch (_) {
+    showToast('Failed to update user. Is the server running?');
   }
-  /* Update data-role for filter */
-  _editUserRow.dataset.role = role;
-  _editUserRow.dataset.name = name.toLowerCase();
-  closeEditUserModal();
-  showToast(name + '\'s details updated');
 }
 document.getElementById('edit-user-modal').addEventListener('click', function(e) { if (e.target === this) closeEditUserModal(); });
 
 /* ── Deactivate User ── */
 let _deactivateRow = null;
+let _deactivateUserId = null;
 function deactivateUser(btn) {
-  _deactivateRow = btn.closest('tr');
+  _deactivateRow    = btn.closest('tr');
+  _deactivateUserId = _deactivateRow.dataset.id;
   const nameEl = _deactivateRow.querySelector('div[style*="font-weight:600"]');
-  const name   = nameEl ? nameEl.textContent : 'this user';
-  document.getElementById('deactivate-user-name').textContent = name;
+  document.getElementById('deactivate-user-name').textContent = nameEl ? nameEl.textContent : 'this user';
   document.getElementById('deactivate-modal').classList.add('open');
 }
 function closeDeactivateModal() {
   document.getElementById('deactivate-modal').classList.remove('open');
-  _deactivateRow = null;
+  _deactivateRow = null; _deactivateUserId = null;
 }
-function confirmDeactivate() {
-  if (!_deactivateRow) return;
-  /* Flip status pill */
-  const pill = _deactivateRow.querySelector('.status-pill');
-  if (pill) { pill.className = 'status-pill inactive'; pill.innerHTML = '<span class="status-dot"></span>Inactive'; }
-  /* Swap Deactivate button → Activate */
-  const deactivateBtn = _deactivateRow.querySelector('button[onclick^="deactivateUser"]');
-  if (deactivateBtn) {
-    deactivateBtn.textContent = 'Activate';
-    deactivateBtn.style.color        = '#16A34A';
-    deactivateBtn.style.borderColor  = '#86EFAC';
-    deactivateBtn.setAttribute('onclick', 'activateUser(this)');
+async function confirmDeactivate() {
+  if (!_deactivateRow || !_deactivateUserId) return;
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
+  try {
+    const res = await fetch('http://localhost:3001/api/users/' + _deactivateUserId + '/status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ status: 'INACTIVE' }),
+    });
+    const data = await res.json();
+    if (!res.ok) { closeDeactivateModal(); showToast(data.error || 'Failed to deactivate user'); return; }
+    const pill = _deactivateRow.querySelector('.status-pill');
+    if (pill) { pill.className = 'status-pill inactive'; pill.innerHTML = '<span class="status-dot"></span>Inactive'; }
+    const deactivateBtn = _deactivateRow.querySelector('button[onclick^="deactivateUser"]');
+    if (deactivateBtn) {
+      deactivateBtn.textContent = 'Activate';
+      deactivateBtn.style.color = '#16A34A'; deactivateBtn.style.borderColor = '#86EFAC';
+      deactivateBtn.setAttribute('onclick', 'activateUser(this)');
+    }
+    const nameEl = _deactivateRow.querySelector('div[style*="font-weight:600"]');
+    closeDeactivateModal();
+    showToast((nameEl ? nameEl.textContent : 'User') + ' has been deactivated');
+  } catch (_) {
+    closeDeactivateModal();
+    showToast('Failed to deactivate user. Is the server running?');
   }
-  const nameEl = _deactivateRow.querySelector('div[style*="font-weight:600"]');
-  const name   = nameEl ? nameEl.textContent : 'User';
-  closeDeactivateModal();
-  showToast(name + ' has been deactivated');
 }
 document.getElementById('deactivate-modal').addEventListener('click', function(e) { if (e.target === this) closeDeactivateModal(); });
 
 /* ── Activate User ── */
-function activateUser(btn) {
-  const row    = btn.closest('tr');
-  const pill   = row.querySelector('.status-pill');
-  if (pill) { pill.className = 'status-pill active'; pill.innerHTML = '<span class="status-dot"></span>Active'; }
-  btn.textContent = 'Deactivate';
-  btn.style.color       = '#DC2626';
-  btn.style.borderColor = '#FECACA';
-  btn.setAttribute('onclick', 'deactivateUser(this)');
+async function activateUser(btn) {
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+  const row  = btn.closest('tr');
+  const id   = row.dataset.id;
   const nameEl = row.querySelector('div[style*="font-weight:600"]');
   const name   = nameEl ? nameEl.textContent : 'User';
-  showToast(name + ' has been reactivated');
+
+  try {
+    const res = await fetch('http://localhost:3001/api/users/' + id + '/status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ status: 'ACTIVE' }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Failed to activate user'); return; }
+    const pill = row.querySelector('.status-pill');
+    if (pill) { pill.className = 'status-pill active'; pill.innerHTML = '<span class="status-dot"></span>Active'; }
+    btn.textContent = 'Deactivate';
+    btn.style.color = '#DC2626'; btn.style.borderColor = '#FECACA';
+    btn.setAttribute('onclick', 'deactivateUser(this)');
+    showToast(name + ' has been reactivated');
+  } catch (_) {
+    showToast('Failed to activate user. Is the server running?');
+  }
 }
 
 /* ── Resend Invite ── */
-function resendInvite(btn, name, contact) {
-  showToast('Invite resent to ' + (contact || name));
+async function resendInvite(btn) {
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+  const id = btn.closest('tr').dataset.id;
+
+  try {
+    const res = await fetch('http://localhost:3001/api/users/' + id + '/resend-invite', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Failed to resend invite'); return; }
+    showToast('Invite resent successfully');
+  } catch (_) {
+    showToast('Failed to resend invite. Is the server running?');
+  }
 }
 
 /* ════════ PASSWORD STRENGTH (FIX #3 — 5-element array, 0-based) ════════ */
