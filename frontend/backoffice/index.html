@@ -2172,60 +2172,83 @@ function getPortalStatus(type) {
 
 function clearPortalError() { document.getElementById('portal-error').style.display = 'none'; }
 
-function trackShipment() {
+async function trackShipment() {
   const input = document.getElementById('portal-tracking-input').value.trim().toUpperCase();
   const errEl = document.getElementById('portal-error');
-  const data  = PORTAL_DATA[input];
-  if (!data) { errEl.style.display = 'block'; return; }
   errEl.style.display = 'none';
-  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-  set('p-avatar', data.initials); set('p-name', data.name); set('p-tracking', data.tracking);
-  set('p-masked-phone', data.phone.slice(0,3) + '•'.repeat(Math.max(0,data.phone.length-5)) + data.phone.slice(-2));
-  set('p-shipment-id', data.shipment);
-  document.getElementById('p-type-badge').innerHTML = `<span class="type-badge ${data.type}">${data.type==='sea'?'🚢 Sea Freight':'✈️ Air Freight'}</span>`;
-  /* Portal delivered — green celebration banner */
-  const banner = document.querySelector('#page-portal-results .portal-status-banner');
-  if (banner) {
-    if (data.stage === 6) {
-      banner.style.background = 'linear-gradient(135deg,#052E16 0%,#064E3B 100%)';
-      banner.querySelector('.portal-status-icon').style.background = 'rgba(34,197,94,.15)';
-    } else {
-      banner.style.background = '';
-      banner.querySelector('.portal-status-icon').style.background = '';
+  if (!input) return;
+
+  try {
+    const res = await fetch('http://localhost:3001/api/portal/track/' + input);
+    if (res.status === 404) {
+      errEl.textContent = 'We couldn\'t find that tracking number. Please check and try again.';
+      errEl.style.display = 'block';
+      return;
     }
-  }
-  set('p-status-value', getPortalStatus(data.type)[data.stage]);
-  set('p-status-desc',  data.statusDesc);
-  /* Portal ETA — shown only for En Route stages */
-  const etaBlock = document.getElementById('p-eta-block');
-  if (etaBlock && data.enRouteDate) {
-    const etaDays = ETA_DAYS[data.type] || 50;
-    const eta = new Date(data.enRouteDate);
-    eta.setDate(eta.getDate() + etaDays);
-    const today = new Date(); today.setHours(0,0,0,0);
-    const diffDays = Math.round((eta - today) / 86400000);
-    const etaStr = eta.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
-    const showEta = data.stage === 1; /* only En Route */
-    etaBlock.style.display = showEta ? 'block' : 'none';
-    if (showEta) {
-      document.getElementById('p-eta-date').textContent = etaStr;
+    const d = await res.json();
+    if (!res.ok) {
+      errEl.textContent = d.error || 'Something went wrong. Please try again.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    const set   = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    const type  = d.shipment.type.toLowerCase();
+    const stage = d.shipment.statusIndex;
+
+    set('p-avatar',       d.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase());
+    set('p-name',         d.name);
+    set('p-tracking',     d.tracking);
+    set('p-masked-phone', d.maskedPhone);
+    set('p-shipment-id',  d.shipment.id);
+    document.getElementById('p-type-badge').innerHTML =
+      `<span class="type-badge ${type}">${type === 'sea' ? '🚢 Sea Freight' : '✈️ Air Freight'}</span>`;
+
+    /* Green celebration banner when delivered */
+    const banner = document.querySelector('#page-portal-results .portal-status-banner');
+    if (banner) {
+      if (stage === 6) {
+        banner.style.background = 'linear-gradient(135deg,#052E16 0%,#064E3B 100%)';
+        banner.querySelector('.portal-status-icon').style.background = 'rgba(34,197,94,.15)';
+      } else {
+        banner.style.background = '';
+        banner.querySelector('.portal-status-icon').style.background = '';
+      }
+    }
+
+    set('p-status-value', d.shipment.statusLabel);
+    set('p-status-desc',  d.shipment.statusDesc);
+
+    /* ETA block — shown only when active (En Route) */
+    const etaBlock = document.getElementById('p-eta-block');
+    if (etaBlock && d.eta && d.eta.active) {
+      etaBlock.style.display = 'block';
+      document.getElementById('p-eta-date').textContent = d.eta.date;
       const daysEl = document.getElementById('p-eta-days');
-      if (diffDays > 0) daysEl.textContent = diffDays + ' days remaining';
-      else if (diffDays === 0) daysEl.textContent = 'Due today';
-      else daysEl.textContent = Math.abs(diffDays) + ' days overdue';
+      if (d.eta.daysLeft > 0)      daysEl.textContent = d.eta.daysLeft + ' days remaining';
+      else if (d.eta.daysLeft === 0) daysEl.textContent = 'Due today';
+      else                           daysEl.textContent = Math.abs(d.eta.daysLeft) + ' days overdue';
+    } else if (etaBlock) {
+      etaBlock.style.display = 'none';
     }
-  } else if (etaBlock) {
-    etaBlock.style.display = 'none';
+
+    /* Progress bar */
+    document.getElementById('p-progress-track').innerHTML = getPortalLabels(type).map((lbl, i) => {
+      const cls = 'portal-step' + (i < stage ? ' done' : i === stage ? ' active' : '');
+      return `<div class="${cls}"><div class="portal-step-circle">${i < stage ? '✓' : i + 1}</div><div class="portal-step-label">${lbl.replace('\n', '<br>')}</div></div>`;
+    }).join('');
+
+    /* Items */
+    set('p-items-count', d.items.length + ' ' + (d.items.length === 1 ? 'item' : 'items'));
+    document.getElementById('p-items-list').innerHTML = d.items.map((it, i) =>
+      `<div class="portal-item-row"><div class="portal-item-num">${String(i + 1).padStart(2, '0')}</div><div class="portal-item-name">${it.description}</div><div class="portal-item-cat">${it.category}</div></div>`
+    ).join('');
+
+    navigate('portal-results');
+  } catch (_) {
+    errEl.textContent = 'Could not connect to the server. Please try again.';
+    errEl.style.display = 'block';
   }
-  document.getElementById('p-progress-track').innerHTML = getPortalLabels(data.type).map((lbl, i) => {
-    const cls = 'portal-step' + (i < data.stage ? ' done' : i === data.stage ? ' active' : '');
-    return `<div class="${cls}"><div class="portal-step-circle">${i < data.stage ? '✓' : i+1}</div><div class="portal-step-label">${lbl.replace('\n','<br>')}</div></div>`;
-  }).join('');
-  set('p-items-count', data.items.length + ' ' + (data.items.length===1?'item':'items'));
-  document.getElementById('p-items-list').innerHTML = data.items.map((it, i) =>
-    `<div class="portal-item-row"><div class="portal-item-num">${String(i+1).padStart(2,'0')}</div><div class="portal-item-name">${it.name}</div><div class="portal-item-cat">${it.cat}</div></div>`
-  ).join('');
-  navigate('portal-results');
 }
 document.getElementById('portal-tracking-input').addEventListener('keydown', e => { if (e.key === 'Enter') trackShipment(); });
 
