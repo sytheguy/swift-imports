@@ -612,12 +612,29 @@
     </div>
     <div style="background:#FFF5F5;border:.5px solid #FECACA;border-radius:8px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
       <div><div style="font-size:13px;font-weight:600;color:#DC2626;">Remove customer</div><div style="font-size:12px;color:#F87171;margin-top:2px;">This will permanently remove them from the shipment.</div></div>
-      <button onclick="removeCustomerFromShipment()" style="background:#DC2626;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">Remove Customer</button>
+      <button onclick="openRemoveCustomerModal()" style="background:#DC2626;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">Remove Customer</button>
     </div>
     <div class="modal-footer" style="margin-top:0;">
       <button class="modal-btn-cancel" onclick="closeEditCustomerModal()">Cancel</button>
       <button class="modal-btn-primary" onclick="saveEditCustomer()">
         <svg viewBox="0 0 24 24" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Save Changes
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ REMOVE CUSTOMER MODAL ══ -->
+<div class="modal-overlay" id="remove-customer-modal">
+  <div class="modal-box">
+    <div class="modal-title">Remove customer?</div>
+    <div class="modal-sub">This cannot be undone.</div>
+    <div style="background:#FFF5F5;border:.5px solid #FECACA;border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:#991B1B;">
+      <b id="remove-customer-name"></b> will be permanently removed from this shipment.
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn-cancel" onclick="closeRemoveCustomerModal()">Cancel</button>
+      <button class="modal-btn-primary" style="background:#DC2626;" onclick="confirmRemoveCustomer()">
+        <svg viewBox="0 0 24 24" stroke-width="2.5" style="width:14px;height:14px;stroke:#fff;fill:none;"><path d="M18 6L6 18M6 6l12 12"/></svg>Yes, Remove
       </button>
     </div>
   </div>
@@ -2319,32 +2336,77 @@ function addItemRow() {
   _tempItemList.push({ desc:'', cat:'', otn:'' });
   renderTempItemRows();
 }
-function saveEditCustomer() {
+async function saveEditCustomer() {
   if (_editCustomerIdx < 0) return;
   const name  = document.getElementById('ec-name').value.trim();
   const phone = document.getElementById('ec-phone').value.trim();
   if (!name || !phone) { showToast('Name and phone are required'); return; }
   const validItems = _tempItemList.filter(it => it.desc.trim());
   if (validItems.length === 0) { showToast('Add at least one item'); return; }
+
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
+  const customerId = customers[_editCustomerIdx].id;
   customers[_editCustomerIdx].name     = name;
   customers[_editCustomerIdx].phone    = phone;
   customers[_editCustomerIdx].itemList = validItems;
   closeEditCustomerModal();
   renderCustomerTable();
   showToast(name + '\'s details saved');
+
+  try {
+    const res = await fetch('http://localhost:3001/api/customers/' + customerId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ name, phone, items: validItems }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showToast(data.error || 'Failed to save changes to server');
+    }
+  } catch (_) {
+    showToast('Could not sync changes with server');
+  }
 }
-function removeCustomerFromShipment() {
+function openRemoveCustomerModal() {
   if (_editCustomerIdx < 0) return;
-  const name = customers[_editCustomerIdx].name;
+  document.getElementById('remove-customer-name').textContent = customers[_editCustomerIdx].name;
+  document.getElementById('remove-customer-modal').classList.add('open');
+}
+function closeRemoveCustomerModal() {
+  document.getElementById('remove-customer-modal').classList.remove('open');
+}
+async function confirmRemoveCustomer() {
+  if (_editCustomerIdx < 0) return;
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
+  const { id, name } = customers[_editCustomerIdx];
   customers.splice(_editCustomerIdx, 1);
+  closeRemoveCustomerModal();
   closeEditCustomerModal();
   renderCustomerTable();
   updateDynamicCounts();
   showToast(name + ' removed from shipment');
+
+  try {
+    const res = await fetch('http://localhost:3001/api/customers/' + id, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showToast(data.error || 'Failed to delete customer from server');
+    }
+  } catch (_) {
+    showToast('Could not sync deletion with server');
+  }
 }
 /* Wire openEditCustomerModal to use temp list approach */
 function openEditCustomerModal(idx) { openEditCustomerModalWithTemp(idx); }
 document.getElementById('edit-customer-modal').addEventListener('click', function(e) { if (e.target === this) closeEditCustomerModal(); });
+document.getElementById('remove-customer-modal').addEventListener('click', function(e) { if (e.target === this) closeRemoveCustomerModal(); });
 
 /* ════════ ADD CUSTOMER ════════ */
 let _newCustomerItems = [];
@@ -2383,19 +2445,46 @@ function addNewCustomerItemRow() {
 /* Safe tracking counter — only increments, never recalculates from array length */
 let _trackingCounter = 6; /* matches the 6 customers in demo data */
 
-function saveAddCustomer() {
+async function saveAddCustomer() {
   const name  = document.getElementById('ac-name').value.trim();
   const phone = document.getElementById('ac-phone').value.trim();
   if (!name)  { showToast('Customer name is required'); return; }
   if (!phone) { showToast('Phone number is required');  return; }
   const validItems = _newCustomerItems.filter(it => it.desc.trim());
   if (validItems.length === 0) { showToast('Add at least one item'); return; }
+
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
   _trackingCounter++;
   const newId = currentShipment.id + '-T' + String(_trackingCounter).padStart(4, '0');
-  customers.push({ id: newId, name, phone, delivered: false, itemList: validItems });
-  closeAddCustomerModal();
-  renderCustomerTable();
-  showToast(name + ' added to shipment · ' + newId);
+
+  try {
+    const res = await fetch('http://localhost:3001/api/customers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ id: newId, name, phone, shipmentId: currentShipment.id, items: validItems }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      _trackingCounter--;
+      showToast(data.error || 'Failed to add customer');
+      return;
+    }
+    customers.push({
+      id:        data.id,
+      name:      data.name,
+      phone:     data.phone,
+      delivered: data.delivered,
+      itemList:  data.items.map(it => ({ desc: it.description, cat: it.category, otn: it.otn || '' })),
+    });
+    closeAddCustomerModal();
+    renderCustomerTable();
+    showToast('Customer added successfully');
+  } catch (_) {
+    _trackingCounter--;
+    showToast('Failed to add customer. Is the server running?');
+  }
 }
 document.getElementById('add-customer-modal').addEventListener('click', function(e) { if (e.target === this) closeAddCustomerModal(); });
 
