@@ -130,7 +130,7 @@
     .pagination { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-top:.5px solid #E0E6EF; }
     .page-info { font-size:12px; color:#8A9DB5; }
     .page-btns { display:flex; gap:6px; }
-    .page-btn { width:30px; height:30px; border-radius:6px; border:.5px solid #D0DCE8; background:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; font-weight:500; color:#4A637A; font-family:'Inter',sans-serif; }
+    .page-btn { min-width:30px; height:30px; padding:0 6px; border-radius:6px; border:.5px solid #D0DCE8; background:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; font-weight:500; color:#4A637A; font-family:'Inter',sans-serif; }
     .page-btn.active { background:#0D2B4E; color:#fff; border-color:#0D2B4E; }
     .page-btn:disabled { opacity:0.4; cursor:not-allowed; }
     .page-btn svg { width:13px; height:13px; stroke:#4A637A; fill:none; }
@@ -755,7 +755,7 @@
             <tr data-type="sea" data-id="SW0303S"><td><span class="shipment-id">SW0303S</span></td><td><span class="type-badge sea">🚢 Sea</span></td><td><span class="status-badge warehouse-cn"><span class="status-dot"></span>In Warehouse (China)</span></td><td><b>44</b></td><td><span class="date-text">03 Mar 2026</span></td><td><div class="actions"><button class="action-btn primary" onclick="navigate('detail')">View</button></div></td></tr>
           </tbody>
         </table>
-        <div class="pagination"><div class="page-info" id="shipments-page-info">Showing 1–7 of 7 shipments</div><div class="page-btns"><button class="page-btn" id="shipments-prev-btn" onclick="shipPage(-1)"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><button class="page-btn active" id="shipments-page-num">1</button><button class="page-btn" id="shipments-next-btn" onclick="shipPage(1)"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button></div></div>
+        <div class="pagination"><div class="page-info" id="shipments-page-info">Showing 1–7 of 7 shipments</div><div class="page-btns" id="shipments-page-btns"></div></div>
       </div>
     </div>
   </div>
@@ -925,7 +925,7 @@
         </div>
         <div class="table-card">
           <table><thead><tr><th>Tracking No.</th><th>Customer Name</th><th>Phone</th><th>Items</th><th>Delivery Status</th><th>Actions</th></tr></thead><tbody id="customers-tbody"></tbody></table>
-          <div class="pagination"><div class="page-info" id="customers-pagination-info">Showing 1–6 of 6 customers</div><div class="page-btns"><button class="page-btn" id="detail-cust-prev-btn" onclick="detailCustPage(-1)"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><button class="page-btn active" id="detail-cust-page-num">1</button><button class="page-btn" id="detail-cust-next-btn" onclick="detailCustPage(1)"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button></div></div>
+          <div class="pagination"><div class="page-info" id="customers-pagination-info">Showing 1–6 of 6 customers</div><div class="page-btns" id="detail-cust-page-btns"></div></div>
         </div>
       </div>
     </div>
@@ -1130,7 +1130,7 @@
           <tr><td colspan="5" style="text-align:center;color:#8A9DB5;padding:24px;">Loading…</td></tr>
         </tbody></table>
       </div>
-      <div class="pagination"><div class="page-info" id="global-customers-page-info">Showing 1–15 of — customers</div><div class="page-btns"><button class="page-btn" id="gc-prev-btn" onclick="prevCustomersPage()"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><button class="page-btn active" id="gc-page-num">1</button><button class="page-btn" id="gc-next-btn" onclick="nextCustomersPage()"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button></div></div>
+      <div class="pagination"><div class="page-info" id="global-customers-page-info">Showing 1–15 of — customers</div><div class="page-btns" id="gc-page-btns"></div></div>
     </div>
   </div>
 </div>
@@ -1320,6 +1320,9 @@ async function loadShipmentDetail(id) {
   const token = localStorage.getItem('swift_token');
   if (!token) { navigate('login'); return; }
 
+  const tbody = document.getElementById('customers-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:#8A9DB5;">Loading…</td></tr>';
+
   try {
     const res = await fetch(API_BASE + '/api/shipments/' + id, {
       headers: { Authorization: 'Bearer ' + token },
@@ -1459,24 +1462,17 @@ async function loadCustomers() {
     _customersTotal      = total;
     _customersTotalPages = totalPages;
 
-    console.log('[loadCustomers] page:', _customersPage, '/', _customersTotalPages, '| total distinct:', _customersTotal, '| rows this page:', list.length);
-
     document.getElementById('gc-stat-total').textContent     = total;
     document.getElementById('gc-stat-items').textContent     = totalItems;
     document.getElementById('gc-stat-delivered').textContent = deliveredCount;
     document.getElementById('gc-stat-pending').textContent   = pendingCount;
 
-    const pi      = document.getElementById('global-customers-page-info');
-    const prevBtn = document.getElementById('gc-prev-btn');
-    const nextBtn = document.getElementById('gc-next-btn');
-    const pageNum = document.getElementById('gc-page-num');
+    const pi = document.getElementById('global-customers-page-info');
 
     if (total === 0) {
       tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#8A9DB5;padding:24px;">No customers yet.</td></tr>';
-      if (pi)      pi.textContent      = 'Showing 0 customers';
-      if (prevBtn) prevBtn.disabled    = true;
-      if (nextBtn) nextBtn.disabled    = true;
-      if (pageNum) pageNum.textContent = '1';
+      if (pi) pi.textContent = 'Showing 0 customers';
+      renderPaginationButtons('gc-page-btns', 1, 1, () => {});
       return;
     }
 
@@ -1494,25 +1490,14 @@ async function loadCustomers() {
 
     const start = (_customersPage - 1) * 15;
     const end   = Math.min(start + 15, total);
-    if (pi)      pi.textContent      = `Showing ${start + 1}–${end} of ${total} customer${total !== 1 ? 's' : ''}`;
-    if (prevBtn) prevBtn.disabled    = _customersPage <= 1;
-    if (nextBtn) nextBtn.disabled    = _customersPage >= _customersTotalPages;
-    if (pageNum) pageNum.textContent = _customersPage;
+    if (pi) pi.textContent = `Showing ${start + 1}–${end} of ${total} customer${total !== 1 ? 's' : ''}`;
+    renderPaginationButtons('gc-page-btns', _customersPage, _customersTotalPages, p => { _customersPage = p; loadCustomers(); });
   } catch (err) {
     console.error('[loadCustomers] fetch/parse error:', err);
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#D32F2F;padding:24px;">Failed to load customers.</td></tr>';
   }
 }
 
-function prevCustomersPage() {
-  console.log('[prevCustomersPage] page before:', _customersPage, 'totalPages:', _customersTotalPages);
-  if (_customersPage > 1) { _customersPage--; loadCustomers(); }
-}
-
-function nextCustomersPage() {
-  console.log('[nextCustomersPage] page before:', _customersPage, 'totalPages:', _customersTotalPages);
-  if (_customersPage < _customersTotalPages) { _customersPage++; loadCustomers(); }
-}
 
 /* Global click handler — closes dropdowns when clicking outside them.
    Uses containment checks so the button click doesn't immediately close what it opened. */
@@ -1578,6 +1563,39 @@ function switchLoginTab(tab) {
 }
 
 /* ════════ SHIPMENTS LIST PAGINATION ════════ */
+/* ════════ PAGINATION UTILITY ════════ */
+const _pagCallbacks = {};
+function renderPaginationButtons(containerId, currentPage, totalPages, onPageChange) {
+  _pagCallbacks[containerId] = onPageChange;
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const svgL = '<svg viewBox="0 0 24 24" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>';
+  const svgR = '<svg viewBox="0 0 24 24" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>';
+  let pages;
+  if (totalPages <= 7) {
+    pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  } else if (currentPage <= 4) {
+    pages = [1, 2, 3, 4, 5, '…', totalPages];
+  } else if (currentPage >= totalPages - 3) {
+    pages = [1, '…', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  } else {
+    pages = [1, '…', currentPage - 1, currentPage, currentPage + 1, '…', totalPages];
+  }
+  let html = `<button class="page-btn" ${currentPage <= 1 ? 'disabled' : ''} onclick="_pagClick('${containerId}',${currentPage - 1})">${svgL}</button>`;
+  for (const p of pages) {
+    if (p === '…') {
+      html += '<button class="page-btn" disabled style="border:none;background:transparent;opacity:1;cursor:default;color:#8A9DB5;">…</button>';
+    } else {
+      html += `<button class="page-btn${p === currentPage ? ' active' : ''}" onclick="_pagClick('${containerId}',${p})">${p}</button>`;
+    }
+  }
+  html += `<button class="page-btn" ${currentPage >= totalPages ? 'disabled' : ''} onclick="_pagClick('${containerId}',${currentPage + 1})">${svgR}</button>`;
+  el.innerHTML = html;
+}
+function _pagClick(containerId, page) {
+  if (_pagCallbacks[containerId]) _pagCallbacks[containerId](page);
+}
+
 let _allShipments = [];
 let _shipPage = 1;
 const SHIP_PAGE_SIZE = 15;
@@ -1630,15 +1648,8 @@ function _renderShipmentsPage(page) {
     ? '0 shipments found'
     : `Showing ${start + 1}–${end} of ${total} shipment${total !== 1 ? 's' : ''}`;
 
-  const prevBtn = document.getElementById('shipments-prev-btn');
-  const nextBtn = document.getElementById('shipments-next-btn');
-  const pageNum = document.getElementById('shipments-page-num');
-  if (prevBtn) prevBtn.disabled = _shipPage <= 1;
-  if (nextBtn) nextBtn.disabled = _shipPage >= totalPages;
-  if (pageNum) pageNum.textContent = _shipPage;
+  renderPaginationButtons('shipments-page-btns', _shipPage, totalPages, p => _renderShipmentsPage(p));
 }
-
-function shipPage(delta) { _renderShipmentsPage(_shipPage + delta); }
 
 /* ════════ SHIPMENTS FILTER ════════ */
 let _shipTypeFilter = 'all';
@@ -2188,11 +2199,6 @@ function filterCustomers(q) {
   renderCustomerTable();
 }
 
-function detailCustPage(delta) {
-  _detailCustPage += delta;
-  renderCustomerTable();
-}
-
 function renderCustomerTable() {
   const isOFD = currentStageIndex === 5;
   const tbody = document.getElementById('customers-tbody');
@@ -2230,12 +2236,7 @@ function renderCustomerTable() {
     ? '0 customers'
     : `Showing ${start + 1}–${end} of ${total} customer${total !== 1 ? 's' : ''}`;
 
-  const prevBtn = document.getElementById('detail-cust-prev-btn');
-  const nextBtn = document.getElementById('detail-cust-next-btn');
-  const pageNum = document.getElementById('detail-cust-page-num');
-  if (prevBtn) prevBtn.disabled = _detailCustPage <= 1;
-  if (nextBtn) nextBtn.disabled = _detailCustPage >= totalPages;
-  if (pageNum) pageNum.textContent = _detailCustPage;
+  renderPaginationButtons('detail-cust-page-btns', _detailCustPage, totalPages, p => { _detailCustPage = p; renderCustomerTable(); });
 
   updateDynamicCounts();
 }
