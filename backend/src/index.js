@@ -27,7 +27,9 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);
-    if (origin === 'null' && process.env.NODE_ENV === 'development') return cb(null, true);
+    if (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost')) {
+      return cb(null, true);
+    }
     if (allowedOrigins.includes(origin)) return cb(null, true);
     cb(new Error(`CORS: origin ${origin} not allowed`));
   },

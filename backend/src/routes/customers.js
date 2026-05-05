@@ -7,24 +7,43 @@ router.use(requireAuth);
 
 router.get('/', async (req, res, next) => {
   try {
-    const customers = await prisma.customer.findMany({
-      include: {
-        _count: { select: { items: true } },
-        shipment: { select: { id: true, type: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const limit = Math.max(1, parseInt(req.query.limit) || 99999);
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const skip  = (page - 1) * limit;
 
-    res.json(customers.map(c => ({
-      id:           c.id,
-      name:         c.name,
-      phone:        c.phone,
-      shipmentId:   c.shipmentId,
-      shipmentType: c.shipment.type,
-      delivered:    c.delivered,
-      itemCount:    c._count.items,
-      createdAt:    c.createdAt,
-    })));
+    const [pageCustomers, total, deliveredCount, totalItems] = await Promise.all([
+      prisma.customer.findMany({
+        include: {
+          _count: { select: { items: true } },
+          shipment: { select: { id: true, type: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.customer.count(),
+      prisma.customer.count({ where: { delivered: true } }),
+      prisma.item.count(),
+    ]);
+
+    res.json({
+      customers: pageCustomers.map(c => ({
+        id:           c.id,
+        name:         c.name,
+        phone:        c.phone,
+        shipmentId:   c.shipmentId,
+        shipmentType: c.shipment.type,
+        delivered:    c.delivered,
+        itemCount:    c._count.items,
+        createdAt:    c.createdAt,
+      })),
+      total,
+      page,
+      totalPages:    Math.max(1, Math.ceil(total / limit)),
+      totalItems,
+      deliveredCount,
+      pendingCount:  total - deliveredCount,
+    });
   } catch (err) {
     next(err);
   }

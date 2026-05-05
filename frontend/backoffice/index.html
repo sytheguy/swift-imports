@@ -132,6 +132,7 @@
     .page-btns { display:flex; gap:6px; }
     .page-btn { width:30px; height:30px; border-radius:6px; border:.5px solid #D0DCE8; background:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; font-weight:500; color:#4A637A; font-family:'Inter',sans-serif; }
     .page-btn.active { background:#0D2B4E; color:#fff; border-color:#0D2B4E; }
+    .page-btn:disabled { opacity:0.4; cursor:not-allowed; }
     .page-btn svg { width:13px; height:13px; stroke:#4A637A; fill:none; }
     .indiv-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:500; }
     .indiv-badge.pending   { background:#FFFBEB; color:#B45309; }
@@ -754,7 +755,7 @@
             <tr data-type="sea" data-id="SW0303S"><td><span class="shipment-id">SW0303S</span></td><td><span class="type-badge sea">🚢 Sea</span></td><td><span class="status-badge warehouse-cn"><span class="status-dot"></span>In Warehouse (China)</span></td><td><b>44</b></td><td><span class="date-text">03 Mar 2026</span></td><td><div class="actions"><button class="action-btn primary" onclick="navigate('detail')">View</button></div></td></tr>
           </tbody>
         </table>
-        <div class="pagination"><div class="page-info" id="shipments-page-info">Showing 1–7 of 7 shipments</div><div class="page-btns"><button class="page-btn"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><button class="page-btn active">1</button><button class="page-btn"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button></div></div>
+        <div class="pagination"><div class="page-info" id="shipments-page-info">Showing 1–7 of 7 shipments</div><div class="page-btns"><button class="page-btn" id="shipments-prev-btn" onclick="shipPage(-1)"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><button class="page-btn active" id="shipments-page-num">1</button><button class="page-btn" id="shipments-next-btn" onclick="shipPage(1)"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button></div></div>
       </div>
     </div>
   </div>
@@ -924,7 +925,7 @@
         </div>
         <div class="table-card">
           <table><thead><tr><th>Tracking No.</th><th>Customer Name</th><th>Phone</th><th>Items</th><th>Delivery Status</th><th>Actions</th></tr></thead><tbody id="customers-tbody"></tbody></table>
-          <div class="pagination"><div class="page-info" id="customers-pagination-info">Showing 1–6 of 6 customers</div><div class="page-btns"><button class="page-btn"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><button class="page-btn active">1</button><button class="page-btn"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button></div></div>
+          <div class="pagination"><div class="page-info" id="customers-pagination-info">Showing 1–6 of 6 customers</div><div class="page-btns"><button class="page-btn" id="detail-cust-prev-btn" onclick="detailCustPage(-1)"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><button class="page-btn active" id="detail-cust-page-num">1</button><button class="page-btn" id="detail-cust-next-btn" onclick="detailCustPage(1)"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button></div></div>
         </div>
       </div>
     </div>
@@ -1128,7 +1129,7 @@
         <table><thead><tr><th>Customer Name</th><th>Phone Number</th><th>Shipment</th><th>Items</th></tr></thead><tbody id="global-customers-tbody">
           <tr><td colspan="4" style="text-align:center;color:#8A9DB5;padding:24px;">Loading…</td></tr>
         </tbody></table>
-        <div class="pagination"><div class="page-info" id="global-customers-page-info">Showing 1–6 of 6 customers</div><div class="page-btns"><button class="page-btn"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><button class="page-btn active">1</button><button class="page-btn"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button></div></div>
+        <div class="pagination"><div class="page-info" id="global-customers-page-info">Showing 1–15 of — customers</div><div class="page-btns"><button class="page-btn" id="gc-prev-btn" onclick="prevCustomersPage()"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><button class="page-btn active" id="gc-page-num">1</button><button class="page-btn" id="gc-next-btn" onclick="nextCustomersPage()"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button></div></div>
       </div>
     </div>
   </div>
@@ -1171,12 +1172,14 @@
         </div>
       </div>
       <div class="settings-section">
-        <div class="settings-section-header"><div class="settings-section-icon amber"><svg viewBox="0 0 24 24" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/></svg></div><div><div class="settings-section-title">Hubtel API credentials</div><div class="settings-section-sub">Required for SMS and WhatsApp notifications</div></div></div>
+        <div class="settings-section-header"><div class="settings-section-icon teal"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div><div><div class="settings-section-title">Notification Service</div><div class="settings-section-sub">Hubtel SMS &amp; WhatsApp integration</div></div></div>
         <div class="settings-body">
-          <div class="settings-row"><div class="settings-field"><div class="settings-label">API Client ID</div><input class="settings-input" id="settings-hubtel-id" type="text" placeholder="e.g. hb_xxxxxxxx"/></div><div class="settings-field"><div class="settings-label">API Client Secret</div><input class="settings-input" id="settings-hubtel-secret" type="password" placeholder="Enter client secret"/></div></div>
-          <div class="settings-field"><div class="settings-label">Sender ID</div><input class="settings-input" id="settings-hubtel-sender" type="text" placeholder="e.g. SwiftImports"/></div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <span style="display:inline-flex;align-items:center;gap:6px;background:#F0FDF4;color:#15803D;border:.5px solid #BBF7D0;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;">&#9679; Connected</span>
+            <span style="font-size:13px;color:#4A637A;font-weight:500;">Sender ID: <b>SwiftImports</b></span>
+          </div>
+          <p style="font-size:12px;color:#8A9DB5;line-height:1.6;margin:0;">Credentials are managed securely via environment variables. Contact your system administrator to update them.</p>
         </div>
-        <div class="settings-footer"><button class="btn-secondary" onclick="showToast('Changes discarded')">Cancel</button><button class="btn-primary" onclick="saveHubtelCredentials()">Save Credentials</button></div>
       </div>
       <div class="settings-section">
         <div class="settings-section-header"><div class="settings-section-icon green"><svg viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div><div><div class="settings-section-title">Security</div><div class="settings-section-sub">Update your account password</div></div></div>
@@ -1292,34 +1295,14 @@ async function loadShipments() {
       return;
     }
 
-    const shipments = await res.json();
-    const delivered = shipments.filter(s => s.statusIndex === 6).length;
+    _allShipments = await res.json();
+    const delivered = _allShipments.filter(s => s.statusIndex === 6).length;
 
-    document.getElementById('stat-total').textContent     = shipments.length;
-    document.getElementById('stat-active').textContent    = shipments.length - delivered;
+    document.getElementById('stat-total').textContent     = _allShipments.length;
+    document.getElementById('stat-active').textContent    = _allShipments.length - delivered;
     document.getElementById('stat-delivered').textContent = delivered;
 
-    if (shipments.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#8A9DB5;padding:24px;">No shipments yet.</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = shipments.map(s => {
-      const type        = s.type.toLowerCase();
-      const typeLabel   = type === 'sea' ? '🚢 Sea' : '✈️ Air';
-      const statusCss   = _STATUS_CSS[s.statusIndex]   || 'warehouse-cn';
-      const statusLabel = s.statusIndex === 1
-        ? `En Route (${type === 'sea' ? 'Sea' : 'Air'})`
-        : (_STATUS_LABEL[s.statusIndex] || s.status);
-      return `<tr data-type="${type}" data-id="${s.id}">
-        <td><span class="shipment-id">${s.id}</span></td>
-        <td><span class="type-badge ${type}">${typeLabel}</span></td>
-        <td><span class="status-badge ${statusCss}"><span class="status-dot"></span>${statusLabel}</span></td>
-        <td><b>${s.customerCount}</b></td>
-        <td><span class="date-text">${_fmtDate(s.date)}</span></td>
-        <td><div class="actions"><button class="action-btn primary" onclick="openDetail('${s.id}')">View</button></div></td>
-      </tr>`;
-    }).join('');
+    _renderShipmentsPage(1);
   } catch (_) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#D32F2F;padding:24px;">Failed to load shipments. Is the server running?</td></tr>';
   }
@@ -1373,6 +1356,7 @@ async function loadShipmentDetail(id) {
     renderProgress();
     updateHeaderBadge();
     updateDropdownHighlight();
+    _detailCustPage = 1;
     renderCustomerTable();
     renderEta();
   } catch (_) {
@@ -1409,7 +1393,7 @@ function navigate(page) {
   document.getElementById('page-' + page).classList.add('active');
   if (page === 'shipments') loadShipments();
   if (page === 'detail')    loadShipmentDetail(_currentShipmentId);
-  if (page === 'customers') loadGlobalCustomers();
+  if (page === 'customers') { _customersPage = 1; loadCustomers(); }
   if (page === 'users')     loadUsers();
   if (page === 'notif')     loadTemplates();
   if (page === 'settings')  loadSettings();
@@ -1440,7 +1424,11 @@ function closeAllDropdowns(exceptStatusDropdown) {
   hideAllSignoutPopovers();
 }
 /* ════════ GLOBAL CUSTOMERS LOADER ════════ */
-async function loadGlobalCustomers() {
+let _customersPage = 1;
+let _customersTotalPages = 1;
+let _customersTotal = 0;
+
+async function loadCustomers() {
   const token = localStorage.getItem('swift_token');
   if (!token) { navigate('login'); return; }
 
@@ -1448,7 +1436,7 @@ async function loadGlobalCustomers() {
   tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#8A9DB5;padding:24px;">Loading…</td></tr>';
 
   try {
-    const res = await fetch(API_BASE + '/api/customers', {
+    const res = await fetch(API_BASE + '/api/customers?page=' + _customersPage + '&limit=15', {
       headers: { Authorization: 'Bearer ' + token },
     });
 
@@ -1459,27 +1447,32 @@ async function loadGlobalCustomers() {
       return;
     }
 
-    const list = await res.json();
+    const { customers: list, total, totalPages, totalItems, deliveredCount, pendingCount } = await res.json();
 
-    const totalItems    = list.reduce((s, c) => s + c.itemCount, 0);
-    const deliveredCount = list.filter(c => c.delivered).length;
-    const pendingCount  = list.length - deliveredCount;
+    _customersTotal      = total;
+    _customersTotalPages = totalPages;
 
-    document.getElementById('gc-stat-total').textContent     = list.length;
+    document.getElementById('gc-stat-total').textContent     = total;
     document.getElementById('gc-stat-items').textContent     = totalItems;
     document.getElementById('gc-stat-delivered').textContent = deliveredCount;
     document.getElementById('gc-stat-pending').textContent   = pendingCount;
 
-    const pi = document.getElementById('global-customers-page-info');
+    const pi      = document.getElementById('global-customers-page-info');
+    const prevBtn = document.getElementById('gc-prev-btn');
+    const nextBtn = document.getElementById('gc-next-btn');
+    const pageNum = document.getElementById('gc-page-num');
 
-    if (list.length === 0) {
+    if (total === 0) {
       tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#8A9DB5;padding:24px;">No customers yet.</td></tr>';
-      if (pi) pi.textContent = 'Showing 0 customers';
+      if (pi)      pi.textContent      = 'Showing 0 customers';
+      if (prevBtn) prevBtn.disabled    = true;
+      if (nextBtn) nextBtn.disabled    = true;
+      if (pageNum) pageNum.textContent = '1';
       return;
     }
 
     tbody.innerHTML = list.map(c => {
-      const initials = c.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+      const initials = c.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
       return `<tr data-name="${c.name.toLowerCase()}" data-phone="${c.phone}">
         <td><div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:#EEF1F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#4A637A;">${initials}</div><b>${c.name}</b></div></td>
         <td><span class="date-text">${c.phone}</span></td>
@@ -1488,10 +1481,23 @@ async function loadGlobalCustomers() {
       </tr>`;
     }).join('');
 
-    if (pi) pi.textContent = 'Showing 1–' + list.length + ' of ' + list.length + ' customer' + (list.length !== 1 ? 's' : '');
+    const start = (_customersPage - 1) * 15;
+    const end   = Math.min(start + 15, total);
+    if (pi)      pi.textContent      = `Showing ${start + 1}–${end} of ${total} customer${total !== 1 ? 's' : ''}`;
+    if (prevBtn) prevBtn.disabled    = _customersPage <= 1;
+    if (nextBtn) nextBtn.disabled    = _customersPage >= _customersTotalPages;
+    if (pageNum) pageNum.textContent = _customersPage;
   } catch (_) {
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#D32F2F;padding:24px;">Failed to load customers.</td></tr>';
   }
+}
+
+function prevCustomersPage() {
+  if (_customersPage > 1) { _customersPage--; loadCustomers(); }
+}
+
+function nextCustomersPage() {
+  if (_customersPage < _customersTotalPages) { _customersPage++; loadCustomers(); }
 }
 
 /* Global click handler — closes dropdowns when clicking outside them.
@@ -1557,29 +1563,78 @@ function switchLoginTab(tab) {
   document.getElementById('lfields-email').style.display = tab === 'email' ? 'flex' : 'none';
 }
 
-/* ════════ SHIPMENTS FILTER (FIX #10) ════════ */
+/* ════════ SHIPMENTS LIST PAGINATION ════════ */
+let _allShipments = [];
+let _shipPage = 1;
+const SHIP_PAGE_SIZE = 15;
+
+function _getFilteredShipments() {
+  const q = (document.querySelector('#page-shipments .search-input')?.value || '').toLowerCase().trim();
+  return _allShipments.filter(s => {
+    const typeOk   = _shipTypeFilter === 'all' || s.type.toLowerCase() === _shipTypeFilter;
+    const searchOk = !q || s.id.toLowerCase().includes(q);
+    return typeOk && searchOk;
+  });
+}
+
+function _renderShipmentsPage(page) {
+  const filtered   = _getFilteredShipments();
+  const total      = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / SHIP_PAGE_SIZE));
+  _shipPage = Math.min(Math.max(1, page), totalPages);
+  const start = (_shipPage - 1) * SHIP_PAGE_SIZE;
+  const slice = filtered.slice(start, start + SHIP_PAGE_SIZE);
+
+  const tbody = document.getElementById('shipments-tbody');
+  if (!tbody) return;
+
+  if (slice.length === 0) {
+    const msg = _allShipments.length === 0 ? 'No shipments yet.' : 'No shipments match your filter.';
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#8A9DB5;padding:24px;">${msg}</td></tr>`;
+  } else {
+    tbody.innerHTML = slice.map(s => {
+      const type        = s.type.toLowerCase();
+      const typeLabel   = type === 'sea' ? '🚢 Sea' : '✈️ Air';
+      const statusCss   = _STATUS_CSS[s.statusIndex]   || 'warehouse-cn';
+      const statusLabel = s.statusIndex === 1
+        ? `En Route (${type === 'sea' ? 'Sea' : 'Air'})`
+        : (_STATUS_LABEL[s.statusIndex] || s.status);
+      return `<tr data-type="${type}" data-id="${s.id}">
+        <td><span class="shipment-id">${s.id}</span></td>
+        <td><span class="type-badge ${type}">${typeLabel}</span></td>
+        <td><span class="status-badge ${statusCss}"><span class="status-dot"></span>${statusLabel}</span></td>
+        <td><b>${s.customerCount}</b></td>
+        <td><span class="date-text">${_fmtDate(s.date)}</span></td>
+        <td><div class="actions"><button class="action-btn primary" onclick="openDetail('${s.id}')">View</button></div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  const end = Math.min(start + SHIP_PAGE_SIZE, total);
+  const pi = document.getElementById('shipments-page-info');
+  if (pi) pi.textContent = total === 0
+    ? '0 shipments found'
+    : `Showing ${start + 1}–${end} of ${total} shipment${total !== 1 ? 's' : ''}`;
+
+  const prevBtn = document.getElementById('shipments-prev-btn');
+  const nextBtn = document.getElementById('shipments-next-btn');
+  const pageNum = document.getElementById('shipments-page-num');
+  if (prevBtn) prevBtn.disabled = _shipPage <= 1;
+  if (nextBtn) nextBtn.disabled = _shipPage >= totalPages;
+  if (pageNum) pageNum.textContent = _shipPage;
+}
+
+function shipPage(delta) { _renderShipmentsPage(_shipPage + delta); }
+
+/* ════════ SHIPMENTS FILTER ════════ */
 let _shipTypeFilter = 'all';
 function setShipmentFilter(btn, type) {
   btn.closest('.filter-tabs').querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   _shipTypeFilter = type;
-  applyShipmentFilter();
+  _renderShipmentsPage(1);
 }
-function filterShipments(q) { applyShipmentFilter(q); }
-function applyShipmentFilter(q) {
-  q = (q !== undefined ? q : document.querySelector('#page-shipments .search-input').value).toLowerCase().trim();
-  let n = 0;
-  document.querySelectorAll('#shipments-tbody tr').forEach(row => {
-    const typeOk   = _shipTypeFilter === 'all' || row.dataset.type === _shipTypeFilter;
-    const id       = (row.dataset.id || '').toLowerCase();
-    const searchOk = !q || id.includes(q);
-    const show = typeOk && searchOk;
-    row.style.display = show ? '' : 'none';
-    if (show) n++;
-  });
-  const pi = document.getElementById('shipments-page-info');
-  if (pi) pi.textContent = n + ' shipment' + (n !== 1 ? 's' : '') + ' found';
-}
+function filterShipments() { _renderShipmentsPage(1); }
 
 /* ════════ USERS FILTER (FIX #10) ════════ */
 let _userRoleFilter = 'all';
@@ -1995,7 +2050,6 @@ function updateDynamicCounts() {
   set('stat-pending',         pending);
   set('detail-customer-count', total + ' customers');
   set('customers-section-sub', total + ' customers · individual delivery tracking');
-  set('customers-pagination-info', 'Showing 1–' + total + ' of ' + total + ' customers');
 }
 
 function toggleStatusDropdown(e) {
@@ -2111,8 +2165,17 @@ function renderEta() {
 
 /* ════════ CUSTOMER TABLE ════════ */
 let _customerSearchQuery = '';
+let _detailCustPage = 1;
+const DETAIL_PAGE_SIZE = 15;
+
 function filterCustomers(q) {
   _customerSearchQuery = q.toLowerCase();
+  _detailCustPage = 1;
+  renderCustomerTable();
+}
+
+function detailCustPage(delta) {
+  _detailCustPage += delta;
   renderCustomerTable();
 }
 
@@ -2124,7 +2187,13 @@ function renderCustomerTable() {
   const visible = customers.filter(c =>
     !q || c.name.toLowerCase().includes(q) || c.phone.includes(q) || c.id.toLowerCase().includes(q)
   );
-  tbody.innerHTML = visible.map((c, _) => {
+  const total      = visible.length;
+  const totalPages = Math.max(1, Math.ceil(total / DETAIL_PAGE_SIZE));
+  _detailCustPage  = Math.min(Math.max(1, _detailCustPage), totalPages);
+  const start = (_detailCustPage - 1) * DETAIL_PAGE_SIZE;
+  const slice = visible.slice(start, start + DETAIL_PAGE_SIZE);
+
+  tbody.innerHTML = slice.map(c => {
     const i = customers.indexOf(c);
     const n = c.itemList.length;
     let statusCell, actionCell;
@@ -2140,6 +2209,20 @@ function renderCustomerTable() {
     }
     return `<tr><td><span class="shipment-id" style="font-size:12px;">${c.id}</span></td><td><b>${c.name}</b></td><td><span class="date-text">${c.phone}</span></td><td>${n} ${n===1?'item':'items'}</td><td>${statusCell}</td><td>${actionCell}</td></tr>`;
   }).join('');
+
+  const end = Math.min(start + DETAIL_PAGE_SIZE, total);
+  const pi = document.getElementById('customers-pagination-info');
+  if (pi) pi.textContent = total === 0
+    ? '0 customers'
+    : `Showing ${start + 1}–${end} of ${total} customer${total !== 1 ? 's' : ''}`;
+
+  const prevBtn = document.getElementById('detail-cust-prev-btn');
+  const nextBtn = document.getElementById('detail-cust-next-btn');
+  const pageNum = document.getElementById('detail-cust-page-num');
+  if (prevBtn) prevBtn.disabled = _detailCustPage <= 1;
+  if (nextBtn) nextBtn.disabled = _detailCustPage >= totalPages;
+  if (pageNum) pageNum.textContent = _detailCustPage;
+
   updateDynamicCounts();
 }
 
@@ -2566,7 +2649,7 @@ async function downloadCustomersCSV() {
     const res  = await fetch(API_BASE + '/api/customers', {
       headers: { Authorization: 'Bearer ' + token },
     });
-    const list = await res.json();
+    const { customers: list } = await res.json();
     const rows = [['Name','Phone','Shipment ID','Items','Status']];
     list.forEach(c => {
       rows.push([c.name, c.phone, c.shipmentId, c.itemCount, c.delivered ? 'Delivered' : 'Pending']);
@@ -3018,24 +3101,6 @@ async function saveCompanyInfo() {
   }
 }
 
-async function saveHubtelCredentials() {
-  const token = localStorage.getItem('swift_token');
-  if (!token) { navigate('login'); return; }
-
-  const clientId     = document.getElementById('settings-hubtel-id')?.value.trim()     || '';
-  const clientSecret = document.getElementById('settings-hubtel-secret')?.value.trim() || '';
-  const senderId     = document.getElementById('settings-hubtel-sender')?.value.trim() || '';
-
-  try {
-    await fetch(API_BASE + '/api/settings/hubtel', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-      body: JSON.stringify({ clientId, clientSecret, senderId }),
-    });
-  } catch (_) { /* endpoint not yet implemented — toast regardless */ }
-
-  showToast('Hubtel credentials saved — will apply on next notification');
-}
 
 async function saveSecurityPassword() {
   const cur  = (document.getElementById('sec-current-pw')?.value  || '').trim();
