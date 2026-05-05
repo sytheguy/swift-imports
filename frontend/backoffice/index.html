@@ -78,7 +78,7 @@
     .notif-empty { font-size:13px; color:#A0B4C8; text-align:center; padding:8px 0; }
 
     /* SHARED */
-    .content { flex:1; overflow-y:auto; padding:24px 28px; display:flex; flex-direction:column; gap:20px; }
+    .content { flex:1; min-height:0; overflow-y:auto; padding:24px 28px; display:flex; flex-direction:column; gap:20px; }
     .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
     .stat-card { background:#fff; border-radius:10px; border:.5px solid #E0E6EF; padding:16px 20px; display:flex; flex-direction:column; gap:6px; }
     .stat-label { font-size:12px; color:#8A9DB5; font-weight:500; }
@@ -1126,11 +1126,11 @@
       </div>
       <div class="toolbar"><div class="search-wrap" style="max-width:360px;"><svg viewBox="0 0 24 24" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="search-input" type="text" placeholder="Search by name or phone number…" oninput="filterGlobalCustomers(this.value)"/></div></div>
       <div class="table-card">
-        <table><thead><tr><th>Customer Name</th><th>Phone Number</th><th>Shipment</th><th>Items</th></tr></thead><tbody id="global-customers-tbody">
-          <tr><td colspan="4" style="text-align:center;color:#8A9DB5;padding:24px;">Loading…</td></tr>
+        <table><thead><tr><th>Customer Name</th><th>Phone Number</th><th>Shipments</th><th>Total Items</th><th>Last Shipment</th></tr></thead><tbody id="global-customers-tbody">
+          <tr><td colspan="5" style="text-align:center;color:#8A9DB5;padding:24px;">Loading…</td></tr>
         </tbody></table>
-        <div class="pagination"><div class="page-info" id="global-customers-page-info">Showing 1–15 of — customers</div><div class="page-btns"><button class="page-btn" id="gc-prev-btn" onclick="prevCustomersPage()"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><button class="page-btn active" id="gc-page-num">1</button><button class="page-btn" id="gc-next-btn" onclick="nextCustomersPage()"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button></div></div>
       </div>
+      <div class="pagination"><div class="page-info" id="global-customers-page-info">Showing 1–15 of — customers</div><div class="page-btns"><button class="page-btn" id="gc-prev-btn" onclick="prevCustomersPage()"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><button class="page-btn active" id="gc-page-num">1</button><button class="page-btn" id="gc-next-btn" onclick="nextCustomersPage()"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button></div></div>
     </div>
   </div>
 </div>
@@ -1433,7 +1433,7 @@ async function loadCustomers() {
   if (!token) { navigate('login'); return; }
 
   const tbody = document.getElementById('global-customers-tbody');
-  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#8A9DB5;padding:24px;">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#8A9DB5;padding:24px;">Loading…</td></tr>';
 
   try {
     const res = await fetch(API_BASE + '/api/customers?page=' + _customersPage + '&limit=15', {
@@ -1447,10 +1447,19 @@ async function loadCustomers() {
       return;
     }
 
-    const { customers: list, total, totalPages, totalItems, deliveredCount, pendingCount } = await res.json();
+    const data = await res.json();
+    const { customers: list, total, totalPages, totalItems, deliveredCount, pendingCount } = data;
+
+    if (!Array.isArray(list) || total === undefined || totalPages === undefined) {
+      console.error('[loadCustomers] unexpected response shape:', data);
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#D32F2F;padding:24px;">Unexpected server response.</td></tr>';
+      return;
+    }
 
     _customersTotal      = total;
     _customersTotalPages = totalPages;
+
+    console.log('[loadCustomers] page:', _customersPage, '/', _customersTotalPages, '| total distinct:', _customersTotal, '| rows this page:', list.length);
 
     document.getElementById('gc-stat-total').textContent     = total;
     document.getElementById('gc-stat-items').textContent     = totalItems;
@@ -1463,7 +1472,7 @@ async function loadCustomers() {
     const pageNum = document.getElementById('gc-page-num');
 
     if (total === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#8A9DB5;padding:24px;">No customers yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#8A9DB5;padding:24px;">No customers yet.</td></tr>';
       if (pi)      pi.textContent      = 'Showing 0 customers';
       if (prevBtn) prevBtn.disabled    = true;
       if (nextBtn) nextBtn.disabled    = true;
@@ -1472,12 +1481,14 @@ async function loadCustomers() {
     }
 
     tbody.innerHTML = list.map(c => {
-      const initials = c.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+      const initials   = c.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+      const shipLabel  = c.shipmentCount === 1 ? '1 shipment' : c.shipmentCount + ' shipments';
       return `<tr data-name="${c.name.toLowerCase()}" data-phone="${c.phone}">
         <td><div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:#EEF1F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#4A637A;">${initials}</div><b>${c.name}</b></div></td>
         <td><span class="date-text">${c.phone}</span></td>
-        <td><span class="shipment-id">${c.shipmentId}</span></td>
-        <td><b>${c.itemCount}</b></td>
+        <td style="color:#4A637A;">${shipLabel}</td>
+        <td><b>${c.totalItems}</b></td>
+        <td><span class="shipment-id">${c.lastShipmentId}</span></td>
       </tr>`;
     }).join('');
 
@@ -1487,16 +1498,19 @@ async function loadCustomers() {
     if (prevBtn) prevBtn.disabled    = _customersPage <= 1;
     if (nextBtn) nextBtn.disabled    = _customersPage >= _customersTotalPages;
     if (pageNum) pageNum.textContent = _customersPage;
-  } catch (_) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#D32F2F;padding:24px;">Failed to load customers.</td></tr>';
+  } catch (err) {
+    console.error('[loadCustomers] fetch/parse error:', err);
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#D32F2F;padding:24px;">Failed to load customers.</td></tr>';
   }
 }
 
 function prevCustomersPage() {
+  console.log('[prevCustomersPage] page before:', _customersPage, 'totalPages:', _customersTotalPages);
   if (_customersPage > 1) { _customersPage--; loadCustomers(); }
 }
 
 function nextCustomersPage() {
+  console.log('[nextCustomersPage] page before:', _customersPage, 'totalPages:', _customersTotalPages);
   if (_customersPage < _customersTotalPages) { _customersPage++; loadCustomers(); }
 }
 
@@ -2646,13 +2660,13 @@ async function downloadCustomersCSV() {
   if (!token) { navigate('login'); return; }
 
   try {
-    const res  = await fetch(API_BASE + '/api/customers', {
+    const res  = await fetch(API_BASE + '/api/customers?limit=99999', {
       headers: { Authorization: 'Bearer ' + token },
     });
     const { customers: list } = await res.json();
-    const rows = [['Name','Phone','Shipment ID','Items','Status']];
+    const rows = [['Name','Phone','Shipments','Total Items','Last Shipment']];
     list.forEach(c => {
-      rows.push([c.name, c.phone, c.shipmentId, c.itemCount, c.delivered ? 'Delivered' : 'Pending']);
+      rows.push([c.name, c.phone, c.shipmentCount, c.totalItems, c.lastShipmentId]);
     });
     const csv = rows.map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
     const a   = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([csv],{type:'text/csv'})), download: 'swift_imports_customers.csv' });

@@ -7,43 +7,64 @@ router.use(requireAuth);
 
 router.get('/', async (req, res, next) => {
   try {
-    const limit = Math.max(1, parseInt(req.query.limit) || 99999);
+    const limit = Math.max(1, parseInt(req.query.limit) || 15);
     const page  = Math.max(1, parseInt(req.query.page)  || 1);
-    const skip  = (page - 1) * limit;
 
-    const [pageCustomers, total, deliveredCount, totalItems] = await Promise.all([
-      prisma.customer.findMany({
-        include: {
-          _count: { select: { items: true } },
-          shipment: { select: { id: true, type: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      prisma.customer.count(),
-      prisma.customer.count({ where: { delivered: true } }),
-      prisma.item.count(),
-    ]);
-
-    res.json({
-      customers: pageCustomers.map(c => ({
-        id:           c.id,
-        name:         c.name,
-        phone:        c.phone,
-        shipmentId:   c.shipmentId,
-        shipmentType: c.shipment.type,
-        delivered:    c.delivered,
-        itemCount:    c._count.items,
-        createdAt:    c.createdAt,
-      })),
-      total,
-      page,
-      totalPages:    Math.max(1, Math.ceil(total / limit)),
-      totalItems,
-      deliveredCount,
-      pendingCount:  total - deliveredCount,
+    // Fetch all records to group by phone — dataset is manageable
+    const allRecords = await prisma.customer.findMany({
+      select: {
+        name:       true,
+        phone:      true,
+        shipmentId: true,
+        delivered:  true,
+        createdAt:  true,
+        _count: { select: { items: true } },
+      },
+      orderBy: { createdAt: 'desc' },
     });
+
+    // Group by phone number; first record per phone is the most recent (desc order)
+    const groupMap = new Map();
+    for (const c of allRecords) {
+      if (!groupMap.has(c.phone)) {
+        groupMap.set(c.phone, {
+          name:           c.name,
+          phone:          c.phone,
+          lastShipmentId: c.shipmentId,
+          shipmentIds:    [],
+          totalItems:     0,
+          allDelivered:   true,
+        });
+      }
+      const g = groupMap.get(c.phone);
+      g.shipmentIds.push(c.shipmentId);
+      g.totalItems += c._count.items;
+      if (!c.delivered) g.allDelivered = false;
+    }
+
+    // Sort alphabetically by name
+    const distinct = Array.from(groupMap.values()).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+
+    const total          = distinct.length;
+    const totalItems     = distinct.reduce((s, g) => s + g.totalItems, 0);
+    const deliveredCount = distinct.filter(g => g.allDelivered).length;
+    const pendingCount   = total - deliveredCount;
+    const totalPages     = Math.max(1, Math.ceil(total / limit));
+
+    const pageSlice = distinct.slice((page - 1) * limit, page * limit).map(g => ({
+      phone:          g.phone,
+      name:           g.name,
+      shipmentCount:  g.shipmentIds.length,
+      totalItems:     g.totalItems,
+      shipmentIds:    g.shipmentIds,
+      lastShipmentId: g.lastShipmentId,
+    }));
+
+    console.log(`[GET /customers] raw records: ${allRecords.length}, distinct: ${total}, page: ${page}/${totalPages}, slice: ${pageSlice.length}`);
+
+    res.json({ customers: pageSlice, total, page, totalPages, totalItems, deliveredCount, pendingCount });
   } catch (err) {
     next(err);
   }
