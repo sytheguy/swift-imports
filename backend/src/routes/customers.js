@@ -72,9 +72,8 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    const { id, name, phone, shipmentId, items } = req.body;
+    const { name, phone, shipmentId, items } = req.body;
 
-    if (!id) return res.status(400).json({ error: 'Tracking ID is required' });
     if (!name) return res.status(400).json({ error: 'Customer name is required' });
     if (!phone) return res.status(400).json({ error: 'Phone number is required' });
     if (!shipmentId) return res.status(400).json({ error: 'Shipment ID is required' });
@@ -84,6 +83,19 @@ router.post('/', async (req, res, next) => {
 
     const shipment = await prisma.shipment.findUnique({ where: { id: shipmentId } });
     if (!shipment) return res.status(404).json({ error: 'Shipment not found' });
+
+    // Auto-generate a safe unique tracking ID based on existing IDs for this shipment
+    const prefix = shipmentId + '-T';
+    const existing = await prisma.customer.findMany({
+      where: { id: { startsWith: prefix } },
+      select: { id: true },
+    });
+    let highest = 0;
+    for (const c of existing) {
+      const num = parseInt(c.id.slice(prefix.length), 10);
+      if (!isNaN(num) && num > highest) highest = num;
+    }
+    const id = prefix + String(highest + 1).padStart(4, '0');
 
     const customer = await prisma.customer.create({
       data: {
@@ -159,6 +171,7 @@ router.delete('/:id', async (req, res, next) => {
 });
 
 router.patch('/:id/deliver', async (req, res, next) => {
+  console.log('[PATCH /deliver] id:', req.params.id);
   try {
     const customer = await prisma.customer.update({
       where: { id: req.params.id },

@@ -912,8 +912,8 @@
       <div class="detail-stats">
         <div class="stat-card"><div class="stat-icon navy"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="stat-label">Total Customers</div><div class="stat-value" id="stat-total-customers">6</div><div class="stat-sub">In this shipment</div></div>
         <div class="stat-card"><div class="stat-icon teal"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg></div><div class="stat-label">Total Items</div><div class="stat-value" id="stat-total-items">17</div><div class="stat-sub">Across all customers</div></div>
-        <div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><div class="stat-label">Delivered</div><div class="stat-value" id="stat-delivered">0</div><div class="stat-sub">Individual deliveries</div></div>
-        <div class="stat-card"><div class="stat-icon amber"><svg viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="stat-label">Pending</div><div class="stat-value" id="stat-pending">6</div><div class="stat-sub">Awaiting delivery</div></div>
+        <div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><div class="stat-label">Delivered</div><div class="stat-value" id="stat-detail-delivered">0</div><div class="stat-sub">Individual deliveries</div></div>
+        <div class="stat-card"><div class="stat-icon amber"><svg viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="stat-label">Pending</div><div class="stat-value" id="stat-detail-pending">6</div><div class="stat-sub">Awaiting delivery</div></div>
       </div>
       <div>
         <div class="section-header" style="margin-bottom:14px;">
@@ -2053,15 +2053,15 @@ function updateDropdownHighlight() {
 }
 
 function updateDynamicCounts() {
-  const total     = customers.length;
+  const total      = customers.length;
   const totalItems = customers.reduce((s,c) => s + c.itemList.length, 0);
-  const deliv     = customers.filter(c => c.delivered).length;
-  const pending   = total - deliv;
+  const deliv      = customers.filter(c => c.delivered).length;
+  const pending    = total - deliv;
   const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-  set('stat-total-customers', total);
-  set('stat-total-items',     totalItems);
-  set('stat-delivered',       deliv);
-  set('stat-pending',         pending);
+  set('stat-total-customers',  total);
+  set('stat-total-items',      totalItems);
+  set('stat-detail-delivered', deliv);
+  set('stat-detail-pending',   pending);
   set('detail-customer-count', total + ' customers');
   set('customers-section-sub', total + ' customers · individual delivery tracking');
 }
@@ -2240,10 +2240,32 @@ function renderCustomerTable() {
   updateDynamicCounts();
 }
 
-function markDelivered(i) {
-  customers[i].delivered = true;
-  renderCustomerTable();
-  checkAllDelivered();
+async function markDelivered(i) {
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+  const c = customers[i];
+  const url = API_BASE + '/api/customers/' + c.id + '/deliver';
+  try {
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json',
+      },
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      showToast(body.error || 'Failed to mark as delivered');
+      return;
+    }
+    customers[i].delivered = true;
+    renderCustomerTable();
+    updateDynamicCounts();
+    if (body.shipmentCompleted) applyStatus(6);
+    showToast(customers[i].name + ' marked as delivered');
+  } catch (err) {
+    showToast('Failed to mark as delivered. Is the server running?');
+  }
 }
 
 function checkAllDelivered() {
@@ -2321,22 +2343,27 @@ async function markCurrentCustomerDelivered() {
   if (!token) { navigate('login'); return; }
 
   const c = customers[_selectedCustomer];
+  const url = API_BASE + '/api/customers/' + c.id + '/deliver';
   try {
-    const res = await fetch(API_BASE + '/api/customers/' + c.id + '/deliver', {
+    const res = await fetch(url, {
       method: 'PATCH',
-      headers: { Authorization: 'Bearer ' + token },
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json',
+      },
     });
+    const body = await res.json();
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      showToast(data.error || 'Failed to mark as delivered');
+      showToast(body.error || 'Failed to mark as delivered');
       return;
     }
-    c.delivered = true;
+    customers[_selectedCustomer].delivered = true;
     renderCustomerDetail();
     renderCustomerTable();
-    checkAllDelivered();
+    updateDynamicCounts();
+    if (body.shipmentCompleted) applyStatus(6);
     showToast(c.name + ' marked as delivered');
-  } catch (_) {
+  } catch (err) {
     showToast('Failed to mark as delivered. Is the server running?');
   }
 }
@@ -2971,9 +2998,6 @@ function addNewCustomerItemRow() {
   _newCustomerItems.push({ desc:'', cat:'', otn:'' });
   renderNewCustomerItemRows();
 }
-/* Safe tracking counter — only increments, never recalculates from array length */
-let _trackingCounter = 6; /* matches the 6 customers in demo data */
-
 async function saveAddCustomer() {
   const name  = document.getElementById('ac-name').value.trim();
   const phone = document.getElementById('ac-phone').value.trim();
@@ -2985,18 +3009,14 @@ async function saveAddCustomer() {
   const token = localStorage.getItem('swift_token');
   if (!token) { navigate('login'); return; }
 
-  _trackingCounter++;
-  const newId = currentShipment.id + '-T' + String(_trackingCounter).padStart(4, '0');
-
   try {
     const res = await fetch(API_BASE + '/api/customers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-      body: JSON.stringify({ id: newId, name, phone, shipmentId: currentShipment.id, items: validItems }),
+      body: JSON.stringify({ name, phone, shipmentId: currentShipment.id, items: validItems }),
     });
     const data = await res.json();
     if (!res.ok) {
-      _trackingCounter--;
       showToast(data.error || 'Failed to add customer');
       return;
     }
@@ -3010,8 +3030,7 @@ async function saveAddCustomer() {
     closeAddCustomerModal();
     renderCustomerTable();
     showToast('Customer added successfully');
-  } catch (_) {
-    _trackingCounter--;
+  } catch (err) {
     showToast('Failed to add customer. Is the server running?');
   }
 }
