@@ -1118,20 +1118,15 @@
     <div class="topbar"><div><div class="topbar-title">Customers</div><div class="topbar-sub">Global directory of all customers across all shipments</div></div><div class="topbar-right"><button class="btn-primary" onclick="downloadCustomersCSV()"><svg viewBox="0 0 24 24" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download CSV</button></div></div>
     <div class="content">
       <div class="stats">
-        <div class="stat-card"><div class="stat-icon navy"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="stat-label">Total Customers</div><div class="stat-value">6</div><div class="stat-sub">In current shipment</div></div>
-        <div class="stat-card"><div class="stat-icon teal"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg></div><div class="stat-label">Total Items</div><div class="stat-value">17</div><div class="stat-sub">Across all customers</div></div>
-        <div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><div class="stat-label">Delivered</div><div class="stat-value">0</div><div class="stat-sub">Completed</div></div>
-        <div class="stat-card"><div class="stat-icon amber"><svg viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="stat-label">Pending</div><div class="stat-value">6</div><div class="stat-sub">In progress</div></div>
+        <div class="stat-card"><div class="stat-icon navy"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="stat-label">Total Customers</div><div class="stat-value" id="gc-stat-total">—</div><div class="stat-sub">Across all shipments</div></div>
+        <div class="stat-card"><div class="stat-icon teal"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg></div><div class="stat-label">Total Items</div><div class="stat-value" id="gc-stat-items">—</div><div class="stat-sub">Across all customers</div></div>
+        <div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><div class="stat-label">Delivered</div><div class="stat-value" id="gc-stat-delivered">—</div><div class="stat-sub">Completed</div></div>
+        <div class="stat-card"><div class="stat-icon amber"><svg viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="stat-label">Pending</div><div class="stat-value" id="gc-stat-pending">—</div><div class="stat-sub">In progress</div></div>
       </div>
       <div class="toolbar"><div class="search-wrap" style="max-width:360px;"><svg viewBox="0 0 24 24" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="search-input" type="text" placeholder="Search by name or phone number…" oninput="filterGlobalCustomers(this.value)"/></div></div>
       <div class="table-card">
-        <table><thead><tr><th>Customer Name</th><th>Phone Number</th></tr></thead><tbody id="global-customers-tbody">
-          <tr data-name="kofi mensah" data-phone="0241234567"><td><div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:#EEF1F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#4A637A;">KM</div><b>Kofi Mensah</b></div></td><td><span class="date-text">0241234567</span></td></tr>
-          <tr data-name="ama owusu" data-phone="0557654321"><td><div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:#EEF1F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#4A637A;">AO</div><b>Ama Owusu</b></div></td><td><span class="date-text">0557654321</span></td></tr>
-          <tr data-name="kwame asante" data-phone="0277001122"><td><div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:#EEF1F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#4A637A;">KA</div><b>Kwame Asante</b></div></td><td><span class="date-text">0277001122</span></td></tr>
-          <tr data-name="abena frimpong" data-phone="0209876543"><td><div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:#EEF1F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#4A637A;">AF</div><b>Abena Frimpong</b></div></td><td><span class="date-text">0209876543</span></td></tr>
-          <tr data-name="yaw darko" data-phone="0244556677"><td><div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:#EEF1F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#4A637A;">YD</div><b>Yaw Darko</b></div></td><td><span class="date-text">0244556677</span></td></tr>
-          <tr data-name="efua boateng" data-phone="0201234567"><td><div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:#EEF1F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#4A637A;">EB</div><b>Efua Boateng</b></div></td><td><span class="date-text">0201234567</span></td></tr>
+        <table><thead><tr><th>Customer Name</th><th>Phone Number</th><th>Shipment</th><th>Items</th></tr></thead><tbody id="global-customers-tbody">
+          <tr><td colspan="4" style="text-align:center;color:#8A9DB5;padding:24px;">Loading…</td></tr>
         </tbody></table>
         <div class="pagination"><div class="page-info" id="global-customers-page-info">Showing 1–6 of 6 customers</div><div class="page-btns"><button class="page-btn"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><button class="page-btn active">1</button><button class="page-btn"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button></div></div>
       </div>
@@ -1386,11 +1381,35 @@ async function loadShipmentDetail(id) {
 }
 
 /* ════════ NAVIGATION ════════ */
+const PAGE_URLS = {
+  'login':          '/',
+  'shipments':      '/shipments',
+  'create':         '/shipments/new',
+  'notif':          '/notifications',
+  'users':          '/users',
+  'setpassword':    '/set-password',
+  'customers':      '/customers',
+  'settings':       '/settings',
+  'portal-landing': '/portal',
+  'portal-results': '/portal/results',
+};
+
+let _navigatingFromHistory = false;
+
 function navigate(page) {
+  if (!_navigatingFromHistory && page !== 'login') {
+    const url = page === 'detail'
+      ? '/shipments/' + _currentShipmentId
+      : page === 'customer'
+        ? '/shipments/' + _currentShipmentId + '/customer'
+        : (PAGE_URLS[page] || '/' + page);
+    window.history.pushState({ page }, '', url);
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   if (page === 'shipments') loadShipments();
   if (page === 'detail')    loadShipmentDetail(_currentShipmentId);
+  if (page === 'customers') loadGlobalCustomers();
   if (page === 'users')     loadUsers();
   if (page === 'notif')     loadTemplates();
   if (page === 'settings')  loadSettings();
@@ -1420,6 +1439,61 @@ function closeAllDropdowns(exceptStatusDropdown) {
   }
   hideAllSignoutPopovers();
 }
+/* ════════ GLOBAL CUSTOMERS LOADER ════════ */
+async function loadGlobalCustomers() {
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
+  const tbody = document.getElementById('global-customers-tbody');
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#8A9DB5;padding:24px;">Loading…</td></tr>';
+
+  try {
+    const res = await fetch(API_BASE + '/api/customers', {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('swift_token');
+      localStorage.removeItem('swift_user');
+      navigate('login');
+      return;
+    }
+
+    const list = await res.json();
+
+    const totalItems    = list.reduce((s, c) => s + c.itemCount, 0);
+    const deliveredCount = list.filter(c => c.delivered).length;
+    const pendingCount  = list.length - deliveredCount;
+
+    document.getElementById('gc-stat-total').textContent     = list.length;
+    document.getElementById('gc-stat-items').textContent     = totalItems;
+    document.getElementById('gc-stat-delivered').textContent = deliveredCount;
+    document.getElementById('gc-stat-pending').textContent   = pendingCount;
+
+    const pi = document.getElementById('global-customers-page-info');
+
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#8A9DB5;padding:24px;">No customers yet.</td></tr>';
+      if (pi) pi.textContent = 'Showing 0 customers';
+      return;
+    }
+
+    tbody.innerHTML = list.map(c => {
+      const initials = c.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+      return `<tr data-name="${c.name.toLowerCase()}" data-phone="${c.phone}">
+        <td><div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:#EEF1F5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#4A637A;">${initials}</div><b>${c.name}</b></div></td>
+        <td><span class="date-text">${c.phone}</span></td>
+        <td><span class="shipment-id">${c.shipmentId}</span></td>
+        <td><b>${c.itemCount}</b></td>
+      </tr>`;
+    }).join('');
+
+    if (pi) pi.textContent = 'Showing 1–' + list.length + ' of ' + list.length + ' customer' + (list.length !== 1 ? 's' : '');
+  } catch (_) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#D32F2F;padding:24px;">Failed to load customers.</td></tr>';
+  }
+}
+
 /* Global click handler — closes dropdowns when clicking outside them.
    Uses containment checks so the button click doesn't immediately close what it opened. */
 document.addEventListener('click', function(e) {
@@ -2484,16 +2558,25 @@ function checkStrength(val) {
 }
 
 /* ════════ CUSTOMERS CSV ════════ */
-function downloadCustomersCSV() {
-  const rows = [['Name','Phone Number','OTN','Item Description']];
-  customers.forEach(c => {
-    c.itemList.forEach(it => {
-      rows.push([c.name, c.phone, it.otn || '', it.desc]);
+async function downloadCustomersCSV() {
+  const token = localStorage.getItem('swift_token');
+  if (!token) { navigate('login'); return; }
+
+  try {
+    const res  = await fetch(API_BASE + '/api/customers', {
+      headers: { Authorization: 'Bearer ' + token },
     });
-  });
-  const csv = rows.map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
-  const a   = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([csv],{type:'text/csv'})), download: 'swift_imports_customers.csv' });
-  a.click(); URL.revokeObjectURL(a.href);
+    const list = await res.json();
+    const rows = [['Name','Phone','Shipment ID','Items','Status']];
+    list.forEach(c => {
+      rows.push([c.name, c.phone, c.shipmentId, c.itemCount, c.delivered ? 'Delivered' : 'Pending']);
+    });
+    const csv = rows.map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+    const a   = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([csv],{type:'text/csv'})), download: 'swift_imports_customers.csv' });
+    a.click(); URL.revokeObjectURL(a.href);
+  } catch (_) {
+    showToast('Failed to download CSV');
+  }
 }
 
 /* ════════ PORTAL (FIX #7 — inline error, clear on input) ════════ */
@@ -3058,6 +3141,32 @@ async function doLogin(btnEl) {
   renderTemplates('sea');
   renderTemplates('air');
   updateShipmentId();
+})();
+
+window.addEventListener('popstate', function(e) {
+  _navigatingFromHistory = true;
+  if (e.state && e.state.page) {
+    navigate(e.state.page);
+  } else {
+    navigate('login');
+  }
+  _navigatingFromHistory = false;
+});
+
+(function checkInitialRoute() {
+  const path = window.location.pathname;
+  const routeMap = {
+    '/shipments':      'shipments',
+    '/shipments/new':  'create',
+    '/notifications':  'notif',
+    '/users':          'users',
+    '/customers':      'customers',
+    '/settings':       'settings',
+    '/portal':         'portal-landing',
+    '/portal/results': 'portal-results',
+  };
+  const page = routeMap[path];
+  if (page) navigate(page);
 })();
 </script>
 </body>

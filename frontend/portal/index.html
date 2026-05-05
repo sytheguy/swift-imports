@@ -167,7 +167,13 @@ const API_BASE = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : '';
 
+let _navigatingFromHistory = false;
+
 function navigate(page) {
+  if (!_navigatingFromHistory) {
+    const url = page === 'portal-results' ? '/portal/results' : '/portal';
+    window.history.pushState({ page }, '', url);
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   if (page === 'portal-landing') {
@@ -177,6 +183,12 @@ function navigate(page) {
     if (err) err.style.display = 'none';
   }
 }
+
+window.addEventListener('popstate', function(e) {
+  _navigatingFromHistory = true;
+  navigate(e.state && e.state.page ? e.state.page : 'portal-landing');
+  _navigatingFromHistory = false;
+});
 
 function clearPortalError() {
   document.getElementById('portal-error').style.display = 'none';
@@ -266,6 +278,10 @@ async function trackShipment() {
 document.getElementById('portal-tracking-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') trackShipment();
 });
+
+if (window.location.pathname === '/portal/results' && window.history.state && window.history.state.page === 'portal-results') {
+  navigate('portal-results');
+}
 </script>
 </body>
 </html>

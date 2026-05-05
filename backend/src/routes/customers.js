@@ -5,6 +5,31 @@ import { requireAuth } from '../middleware/auth.js';
 const router = Router();
 router.use(requireAuth);
 
+router.get('/', async (req, res, next) => {
+  try {
+    const customers = await prisma.customer.findMany({
+      include: {
+        _count: { select: { items: true } },
+        shipment: { select: { id: true, type: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json(customers.map(c => ({
+      id:           c.id,
+      name:         c.name,
+      phone:        c.phone,
+      shipmentId:   c.shipmentId,
+      shipmentType: c.shipment.type,
+      delivered:    c.delivered,
+      itemCount:    c._count.items,
+      createdAt:    c.createdAt,
+    })));
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/', async (req, res, next) => {
   try {
     const { id, name, phone, shipmentId, items } = req.body;
